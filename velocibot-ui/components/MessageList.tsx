@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
@@ -154,12 +154,7 @@ export function MessageList({
 
           <h1
             className="text-5xl md:text-6xl font-black mb-4 tracking-tighter"
-            style={{
-              background: 'linear-gradient(to bottom, var(--title-gradient-from), var(--title-gradient-to))',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-            }}>
+            style={{ color: 'var(--foreground)' }}>
             VelociBot
           </h1>
 
