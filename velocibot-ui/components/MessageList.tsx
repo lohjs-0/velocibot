@@ -154,7 +154,12 @@ export function MessageList({
 
           <h1
             className="text-5xl md:text-6xl font-black mb-4 tracking-tighter"
-            style={{ color: 'var(--foreground)' }}>
+            style={{
+              background: 'linear-gradient(135deg, var(--accent-gold-light) 0%, var(--accent-gold) 50%, var(--accent-gold) 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}>
             VelociBot
           </h1>
 

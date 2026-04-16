@@ -21,7 +21,10 @@ interface Props {
 
 export function Sidebar({ open, chats, currentChatId, user, userName, onNewChat, onSelectChat, onDeleteRequest, onClose, onSignOut }: Props) {
   const [profileOpen, setProfileOpen] = useState(false)
-  const [localName, setLocalName] = useState<string | null>(null)
+  const [localName, setLocalName] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null
+    return localStorage.getItem('velocibot_username')
+  })
 
   const displayName = localName ?? userName ?? user?.email?.split('@')[0] ?? 'Usuário'
   const displayEmail = user?.email ?? ''
@@ -144,7 +147,10 @@ export function Sidebar({ open, chats, currentChatId, user, userName, onNewChat,
         userName={displayName}
         onClose={() => setProfileOpen(false)}
         onSignOut={onSignOut}
-        onNameChange={(name) => setLocalName(name)}
+        onNameChange={(name) => {
+          localStorage.setItem('velocibot_username', name)
+          setLocalName(name)
+        }}
       />
     </>
   )
