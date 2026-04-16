@@ -21,9 +21,13 @@ interface Props {
 
 export function Sidebar({ open, chats, currentChatId, user, userName, onNewChat, onSelectChat, onDeleteRequest, onClose, onSignOut }: Props) {
   const [profileOpen, setProfileOpen] = useState(false)
+
+  // ✅ Chave isolada por user.id — evita vazamento entre contas
+  const storageKey = user?.id ? `velocibot_username_${user.id}` : null
+
   const [localName, setLocalName] = useState<string | null>(() => {
-    if (typeof window === 'undefined') return null
-    return localStorage.getItem('velocibot_username')
+    if (typeof window === 'undefined' || !storageKey) return null
+    return localStorage.getItem(storageKey)
   })
 
   const displayName = localName ?? userName ?? user?.email?.split('@')[0] ?? 'Usuário'
@@ -148,7 +152,8 @@ export function Sidebar({ open, chats, currentChatId, user, userName, onNewChat,
         onClose={() => setProfileOpen(false)}
         onSignOut={onSignOut}
         onNameChange={(name) => {
-          localStorage.setItem('velocibot_username', name)
+          // ✅ Salva isolado por user.id
+          if (storageKey) localStorage.setItem(storageKey, name)
           setLocalName(name)
         }}
       />

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, LogOut, Sun, Moon, Monitor, Pencil, Check } from 'lucide-react'
 import { useTheme } from 'next-themes'
@@ -25,26 +25,49 @@ const themes = [
 ]
 
 export function ProfileModal({ open, user, userName, onClose, onSignOut, onNameChange }: Props) {
-  const displayName = userName ?? user?.email?.split('@')[0] ?? 'Usuário'
+  const fallbackName = user?.email?.split('@')[0] ?? 'Usuário'
   const displayEmail = user?.email ?? ''
-  const initial = displayName.charAt(0).toUpperCase()
 
   const { theme, setTheme } = useTheme()
   const [editingName, setEditingName] = useState(false)
-  const [nameValue, setNameValue] = useState(displayName)
-  const [savedName, setSavedName] = useState(displayName)
+  const [nameValue, setNameValue] = useState(userName ?? fallbackName)
+  const [savedName, setSavedName] = useState(userName ?? fallbackName)
+
+  // ✅ Carrega o nome do banco sempre que o modal abre ou o user muda
+  // Isso garante que cada conta veja seu próprio nome, vindo do banco
+  useEffect(() => {
+    if (!open || !user?.id) return
+
+    supabase
+      .from('user_profiles')
+      .select('name')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.name) {
+          setSavedName(data.name)
+          setNameValue(data.name)
+        } else {
+          // sem registro no banco ainda — usa fallback
+          setSavedName(userName ?? fallbackName)
+          setNameValue(userName ?? fallbackName)
+        }
+      })
+  }, [open, user?.id])
+
+  const initial = savedName.charAt(0).toUpperCase()
 
   async function handleSaveName() {
-    const trimmed = nameValue.trim() || displayName
+    const trimmed = nameValue.trim() || savedName
     setSavedName(trimmed)
     setEditingName(false)
     onNameChange?.(trimmed)
 
     if (user?.id) {
+      // ✅ upsert garante que cria o registro se não existir
       await supabase
         .from('user_profiles')
-        .update({ name: trimmed })
-        .eq('id', user.id)
+        .upsert({ id: user.id, name: trimmed }, { onConflict: 'id' })
     }
   }
 
