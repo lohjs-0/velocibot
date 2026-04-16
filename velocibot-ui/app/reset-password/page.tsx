@@ -30,24 +30,49 @@ export default function ResetPassword() {
   const [ready, setReady] = useState(false)
   const [lastAttempt, setLastAttempt] = useState(0)
 
-  // ✅ Listener com cleanup para evitar memory leak
   useEffect(() => {
-    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') setReady(true)
-    })
-    return () => listener.subscription.unsubscribe()
+    const handleRecovery = async () => {
+      // 1. Tenta trocar o ?code= da URL por sessão (fluxo PKCE)
+      const code = new URLSearchParams(window.location.search).get('code')
+
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        if (error) {
+          setError('Link expirado ou inválido. Solicite um novo.')
+          return
+        }
+        setReady(true)
+        return
+      }
+
+      // 2. Fallback: sessão já existente (ex: usuário voltou à aba)
+      const { data } = await supabase.auth.getSession()
+      if (data.session) {
+        setReady(true)
+        return
+      }
+
+      // 3. Último recurso: listener para magic link / fluxo implícito
+      const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
+          setReady(true)
+        }
+      })
+
+      return () => listener.subscription.unsubscribe()
+    }
+
+    handleRecovery()
   }, [supabase])
 
   const handleReset = useCallback(async () => {
     setError('')
 
-    // ✅ Debounce leve
     const now = Date.now()
     if (now - lastAttempt < 1500) return
     setLastAttempt(now)
 
     if (!password || !confirm) return setError('Preencha todos os campos.')
-    // ✅ Consistente com o AuthModal — mínimo 8 caracteres
     if (password.length < 8) return setError('A senha deve ter pelo menos 8 caracteres.')
     if (password !== confirm) return setError('As senhas não coincidem.')
 
@@ -96,7 +121,6 @@ export default function ResetPassword() {
         </div>
 
         <AnimatePresence mode="wait">
-          {/* Tela de sucesso */}
           {success ? (
             <motion.div
               key="success"
@@ -114,7 +138,6 @@ export default function ResetPassword() {
             </motion.div>
 
           ) : !ready ? (
-            // Aguardando token do Supabase
             <motion.div
               key="loading"
               initial={{ opacity: 0 }}
