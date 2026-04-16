@@ -33,8 +33,8 @@ export function ProfileModal({ open, user, userName, onClose, onSignOut, onNameC
   const [nameValue, setNameValue] = useState(userName ?? fallbackName)
   const [savedName, setSavedName] = useState(userName ?? fallbackName)
 
-  // ✅ Carrega o nome do banco sempre que o modal abre ou o user muda
-  // Isso garante que cada conta veja seu próprio nome, vindo do banco
+  // Carrega o nome do banco sempre que o modal abre ou o user muda.
+  // Garante que cada conta veja seu próprio nome, vindo do banco.
   useEffect(() => {
     if (!open || !user?.id) return
 
@@ -64,7 +64,7 @@ export function ProfileModal({ open, user, userName, onClose, onSignOut, onNameC
     onNameChange?.(trimmed)
 
     if (user?.id) {
-      // ✅ upsert garante que cria o registro se não existir
+      // upsert garante que cria o registro se não existir
       await supabase
         .from('user_profiles')
         .upsert({ id: user.id, name: trimmed }, { onConflict: 'id' })

@@ -22,15 +22,19 @@ interface Props {
 export function Sidebar({ open, chats, currentChatId, user, userName, onNewChat, onSelectChat, onDeleteRequest, onClose, onSignOut }: Props) {
   const [profileOpen, setProfileOpen] = useState(false)
 
-  // ✅ Chave isolada por user.id — evita vazamento entre contas
+  // Chave isolada por user.id — evita vazamento entre contas
   const storageKey = user?.id ? `velocibot_username_${user.id}` : null
 
-  const [localName, setLocalName] = useState<string | null>(() => {
-    if (typeof window === 'undefined' || !storageKey) return null
-    return localStorage.getItem(storageKey)
-  })
+  // ✅ CORREÇÃO: em vez de useState+useEffect (que causava warning de cascading render),
+  // lemos o localStorage direto usando o storageKey atual, que já depende do user.id.
+  // Quando o user muda, storageKey muda, e essa leitura retorna o valor da nova conta.
+  // forceUpdate só serve para forçar re-render após o usuário salvar um novo nome.
+  const [, forceUpdate] = useState(0)
+  const storedName = typeof window !== 'undefined' && storageKey
+    ? localStorage.getItem(storageKey)
+    : null
 
-  const displayName = localName ?? userName ?? user?.email?.split('@')[0] ?? 'Usuário'
+  const displayName = storedName ?? userName ?? user?.email?.split('@')[0] ?? 'Usuário'
   const displayEmail = user?.email ?? ''
   const initial = displayName.charAt(0).toUpperCase()
 
@@ -152,9 +156,9 @@ export function Sidebar({ open, chats, currentChatId, user, userName, onNewChat,
         onClose={() => setProfileOpen(false)}
         onSignOut={onSignOut}
         onNameChange={(name) => {
-          // ✅ Salva isolado por user.id
+          // Salva isolado por user.id e força re-render para atualizar o displayName
           if (storageKey) localStorage.setItem(storageKey, name)
-          setLocalName(name)
+          forceUpdate(n => n + 1)
         }}
       />
     </>
