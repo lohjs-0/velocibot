@@ -1,0 +1,220 @@
+'use client'
+
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { X, LogOut, Sun, Moon, Monitor, Pencil, Check } from 'lucide-react'
+import { useTheme } from 'next-themes'
+import type { User } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase'
+
+const supabase = createClient()
+
+interface Props {
+  open: boolean
+  user?: User | null
+  userName?: string | null
+  onClose: () => void
+  onSignOut?: () => void
+  onNameChange?: (name: string) => void
+}
+
+const themes = [
+  { id: 'system', label: 'Sistema', icon: Monitor },
+  { id: 'dark', label: 'Escuro', icon: Moon },
+  { id: 'light', label: 'Claro', icon: Sun },
+]
+
+export function ProfileModal({ open, user, userName, onClose, onSignOut, onNameChange }: Props) {
+  const displayName = userName ?? user?.email?.split('@')[0] ?? 'Usuário'
+  const displayEmail = user?.email ?? ''
+  const initial = displayName.charAt(0).toUpperCase()
+
+  const { theme, setTheme } = useTheme()
+  const [editingName, setEditingName] = useState(false)
+  const [nameValue, setNameValue] = useState(displayName)
+  const [savedName, setSavedName] = useState(displayName)
+
+  async function handleSaveName() {
+    const trimmed = nameValue.trim() || displayName
+    setSavedName(trimmed)
+    setEditingName(false)
+    onNameChange?.(trimmed)
+
+    if (user?.id) {
+      await supabase
+        .from('user_profiles')
+        .update({ name: trimmed })
+        .eq('id', user.id)
+    }
+  }
+
+  const content = (
+    <div className="flex flex-col gap-1">
+      {/* Avatar + info */}
+      <div className="flex flex-col items-center gap-3 py-6 px-4">
+        <div className="w-16 h-16 rounded-full bg-yellow-500 flex items-center justify-center shadow-[0_0_30px_rgba(234,179,8,0.3)]">
+          <span className="text-black font-black text-2xl">{initial}</span>
+        </div>
+        <div className="text-center">
+          <p className="font-black text-base tracking-tight" style={{ color: 'var(--foreground)' }}>{savedName}</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--foreground-muted)' }}>{displayEmail}</p>
+        </div>
+      </div>
+
+      <div className="h-[1px] mx-4 mb-2" style={{ background: 'var(--border)' }} />
+
+      {/* Nome */}
+      <div className="px-4 mb-1">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-2 px-1" style={{ color: 'var(--foreground-muted)' }}>Personalização</p>
+        <div className="flex items-center gap-2 p-3 rounded-2xl" style={{ background: 'var(--border)', border: '1px solid var(--border)' }}>
+          {editingName ? (
+            <>
+              <input
+                autoFocus
+                value={nameValue}
+                onChange={e => setNameValue(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSaveName()}
+                className="flex-1 bg-transparent text-sm font-bold outline-none"
+                style={{ color: 'var(--foreground)' }}
+                placeholder="Seu nome"
+                maxLength={32}
+              />
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={handleSaveName}
+                className="p-1.5 rounded-xl cursor-pointer"
+                style={{ background: 'var(--accent-gold-bg)', border: '1px solid var(--accent-gold-border)', color: 'var(--accent-gold)' }}
+              >
+                <Check size={13} />
+              </motion.button>
+            </>
+          ) : (
+            <>
+              <span className="flex-1 text-sm font-bold truncate" style={{ color: 'var(--foreground)' }}>{savedName}</span>
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => { setNameValue(savedName); setEditingName(true) }}
+                className="p-1.5 rounded-xl transition-all cursor-pointer"
+                style={{ color: 'var(--foreground-muted)' }}
+              >
+                <Pencil size={13} />
+              </motion.button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Aparência */}
+      <div className="px-4 mb-2">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-2 px-1 mt-3" style={{ color: 'var(--foreground-muted)' }}>Aparência</p>
+        <div className="flex gap-2">
+          {themes.map(({ id, label, icon: Icon }) => (
+            <motion.button
+              key={id}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setTheme(id)}
+              className="flex-1 flex flex-col items-center gap-1.5 py-3 rounded-2xl border transition-all cursor-pointer text-xs font-black uppercase tracking-wider"
+              style={theme === id ? {
+                background: 'var(--accent-gold-bg)',
+                border: '1px solid var(--accent-gold-border)',
+                color: 'var(--accent-gold)',
+              } : {
+                background: 'var(--border)',
+                border: '1px solid var(--border)',
+                color: 'var(--foreground-muted)',
+              }}
+            >
+              <Icon size={16} />
+              <span>{label}</span>
+            </motion.button>
+          ))}
+        </div>
+      </div>
+
+      <div className="h-[1px] mx-4 mb-2" style={{ background: 'var(--border)' }} />
+
+      {/* Sair */}
+      {onSignOut && (
+        <div className="px-4 pb-4">
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => { onSignOut(); onClose() }}
+            className="w-full flex items-center gap-3 p-3.5 rounded-2xl transition-all cursor-pointer group"
+            style={{ background: 'var(--border)', border: '1px solid var(--border)', color: 'var(--foreground-muted)' }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.color = '#f87171'
+              ;(e.currentTarget as HTMLElement).style.borderColor = 'rgba(239,68,68,0.2)'
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.color = 'var(--foreground-muted)'
+              ;(e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'
+            }}
+          >
+            <LogOut size={15} />
+            <span className="text-xs font-black uppercase tracking-wider">Sair da conta</span>
+          </motion.button>
+        </div>
+      )}
+    </div>
+  )
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 backdrop-blur-sm z-40"
+            style={{ background: 'var(--overlay)' }}
+          />
+
+          {/* Mobile drawer */}
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+            className="md:hidden fixed bottom-0 left-0 right-0 z-50 rounded-t-[2rem] overflow-hidden"
+            style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)' }}
+          >
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full" style={{ background: 'var(--border-muted)' }} />
+            </div>
+            <div className="flex justify-between items-center px-5 pt-2">
+              <p className="text-[11px] font-black uppercase tracking-[0.2em]" style={{ color: 'var(--foreground-muted)' }}>Perfil</p>
+              <motion.button whileTap={{ scale: 0.9 }} onClick={onClose} className="p-2 rounded-xl cursor-pointer" style={{ color: 'var(--foreground-muted)' }}>
+                <X size={16} />
+              </motion.button>
+            </div>
+            {content}
+          </motion.div>
+
+          {/* Desktop modal */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 8 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className="hidden md:block fixed bottom-20 left-4 z-50 w-[300px] rounded-[2rem] overflow-hidden"
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              boxShadow: '0 0 60px var(--shadow-color)'
+            }}
+          >
+            <div className="flex justify-between items-center px-5 pt-4">
+              <p className="text-[11px] font-black uppercase tracking-[0.2em]" style={{ color: 'var(--foreground-muted)' }}>Perfil</p>
+              <motion.button whileTap={{ scale: 0.9 }} onClick={onClose} className="p-2 rounded-xl cursor-pointer" style={{ color: 'var(--foreground-muted)' }}>
+                <X size={16} />
+              </motion.button>
+            </div>
+            {content}
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}
