@@ -47,29 +47,7 @@ export default function PrivacyPage() {
                         content: 'Você pode pedir exclusão dos seus dados a qualquer momento. Sem burocracia, sem formulário de 12 páginas. Manda um e-mail e resolve.',
                     },
                 ].map((section, i) => (
-                    <div
-                        key={i}
-                        className="mb-4 rounded-xl px-6 py-5 transition-all duration-300"
-                        style={{
-                            background: 'var(--surface-2)',
-                            border: '1px solid var(--border-muted)',
-                            cursor: 'pointer',
-                        }}
-                        onMouseEnter={e => {
-                            const el = e.currentTarget
-                            el.style.background = 'var(--accent-gold-bg)'
-                            el.style.border = '1px solid var(--accent-gold-border)'
-                            el.style.transform = 'translateY(-2px)'
-                            el.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)'
-                        }}
-                        onMouseLeave={e => {
-                            const el = e.currentTarget
-                            el.style.background = 'var(--surface-2)'
-                            el.style.border = '1px solid var(--border-muted)'
-                            el.style.transform = 'translateY(0)'
-                            el.style.boxShadow = 'none'
-                        }}
-                    >
+                    <div key={i} className="privacy-card mb-4 rounded-xl px-6 py-5">
                         <h2
                             className="text-base font-bold mb-2 uppercase tracking-wider"
                             style={{ color: 'var(--accent-gold)' }}
@@ -82,29 +60,7 @@ export default function PrivacyPage() {
                     </div>
                 ))}
 
-                {/* Contato */}
-                <div
-                    className="mb-10 rounded-xl px-6 py-5 transition-all duration-300"
-                    style={{
-                        background: 'var(--accent-gold-bg)',
-                        border: '1px solid var(--accent-gold-border)',
-                        cursor: 'pointer',
-                    }}
-                    onMouseEnter={e => {
-                        const el = e.currentTarget
-                        el.style.background = 'var(--surface-2)'
-                        el.style.border = '1px solid var(--accent-gold-border)'
-                        el.style.transform = 'translateY(-2px)'
-                        el.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)'
-                    }}
-                    onMouseLeave={e => {
-                        const el = e.currentTarget
-                        el.style.background = 'var(--accent-gold-bg)'
-                        el.style.border = '1px solid var(--accent-gold-border)'
-                        el.style.transform = 'translateY(0)'
-                        el.style.boxShadow = 'none'
-                    }}
-                >
+                <div className="privacy-card-contact mb-10 rounded-xl px-6 py-5">
                     <h2
                         className="text-base font-bold mb-2 uppercase tracking-wider"
                         style={{ color: 'var(--accent-gold)' }}
@@ -126,28 +82,7 @@ export default function PrivacyPage() {
                     </p>
                 </div>
 
-                {/* Botão voltar */}
-                <Link
-                    href="/"
-                    className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-full transition-all duration-300"
-                    style={{
-                        color: 'var(--background)',
-                        background: 'var(--accent-gold)',
-                        boxShadow: '0 0 20px var(--accent-gold-bg)',
-                    }}
-                    onMouseEnter={e => {
-                        const el = e.currentTarget as HTMLAnchorElement
-                        el.style.opacity = '0.85'
-                        el.style.transform = 'translateY(-1px)'
-                        el.style.boxShadow = '0 0 35px var(--accent-gold-border)'
-                    }}
-                    onMouseLeave={e => {
-                        const el = e.currentTarget as HTMLAnchorElement
-                        el.style.opacity = '1'
-                        el.style.transform = 'translateY(0)'
-                        el.style.boxShadow = '0 0 20px var(--accent-gold-bg)'
-                    }}
-                >
+                <Link href="/" className="privacy-back-btn">
                     ← Voltar pro VelociBot
                 </Link>
 

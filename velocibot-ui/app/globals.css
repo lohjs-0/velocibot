@@ -113,3 +113,52 @@ body {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); }
 .custom-scrollbar { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .mix-blend-screen { mix-blend-mode: screen; }
+
+/* ── Privacy page ── */
+.privacy-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border-muted);
+  cursor: pointer;
+  transition: background 0.3s ease, border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.privacy-card:hover {
+  background: var(--accent-gold-bg);
+  border-color: var(--accent-gold-border);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.privacy-card-contact {
+  background: var(--accent-gold-bg);
+  border: 1px solid var(--accent-gold-border);
+  cursor: pointer;
+  transition: background 0.3s ease, border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.privacy-card-contact:hover {
+  background: var(--surface-2);
+  border-color: var(--accent-gold-border);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.privacy-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 20px;
+  border-radius: 9999px;
+  color: var(--background);
+  background: var(--accent-gold);
+  box-shadow: 0 0 20px var(--accent-gold-bg);
+  transition: opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.privacy-back-btn:hover {
+  opacity: 0.85;
+  transform: translateY(-2px);
+  box-shadow: 0 0 35px var(--accent-gold-border);
+}
