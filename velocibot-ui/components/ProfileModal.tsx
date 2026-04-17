@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, LogOut, Sun, Moon, Monitor, Pencil, Check } from 'lucide-react'
+import { X, LogOut, Sun, Moon, Monitor, Pencil, Check, Trash2 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import type { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase'
@@ -32,8 +32,9 @@ export function ProfileModal({ open, user, userName, onClose, onSignOut, onNameC
   const [editingName, setEditingName] = useState(false)
   const [nameValue, setNameValue] = useState(userName ?? fallbackName)
   const [savedName, setSavedName] = useState(userName ?? fallbackName)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
-  // Busca o nome do banco quando o modal abre
   useEffect(() => {
     if (!open || !user?.id) return
 
@@ -51,6 +52,11 @@ export function ProfileModal({ open, user, userName, onClose, onSignOut, onNameC
 
   const initial = savedName.charAt(0).toUpperCase()
 
+  function handleClose() {
+    setConfirmDelete(false)
+    onClose()
+  }
+
   async function handleSaveName() {
     const trimmed = nameValue.trim() || savedName
     setSavedName(trimmed)
@@ -64,14 +70,51 @@ export function ProfileModal({ open, user, userName, onClose, onSignOut, onNameC
     }
   }
 
+  async function handleDeleteAccount() {
+    if (!user?.id) return
+    setDeleting(true)
+
+    try {
+      const { data: chats } = await supabase
+        .from('chats')
+        .select('id')
+        .eq('user_id', user.id)
+
+      if (chats && chats.length > 0) {
+        const chatIds = chats.map(c => c.id)
+        await supabase
+          .from('messages')
+          .delete()
+          .in('chat_id', chatIds)
+      }
+
+      await supabase
+        .from('chats')
+        .delete()
+        .eq('user_id', user.id)
+
+      await supabase
+        .from('user_profiles')
+        .delete()
+        .eq('id', user.id)
+
+      await supabase.auth.admin.deleteUser(user.id)
+
+      onSignOut?.()
+      handleClose()
+    } catch (err) {
+      console.error('Erro ao deletar conta:', err)
+      setDeleting(false)
+    }
+  }
+
   const content = (
     <div className="flex flex-col gap-1">
 
-      {/* Botão X */}
       <div className="flex justify-end px-4 pt-4">
         <motion.button
           whileTap={{ scale: 0.9 }}
-          onClick={onClose}
+          onClick={handleClose}
           className="p-1.5 rounded-xl cursor-pointer transition-opacity hover:opacity-80"
           style={{ color: 'var(--foreground-muted)' }}
         >
@@ -160,16 +203,56 @@ export function ProfileModal({ open, user, userName, onClose, onSignOut, onNameC
       <div className="h-[1px] mx-4 mb-2" style={{ background: 'var(--border)' }} />
 
       {onSignOut && (
-        <div className="px-4 pb-4">
+        <div className="px-4 pb-4 flex flex-col gap-2">
           <motion.button
             whileTap={{ scale: 0.98 }}
-            onClick={() => { onSignOut(); onClose() }}
-            className="w-full flex items-center gap-3 p-3.5 rounded-2xl transition-all cursor-pointer group"
+            onClick={() => { onSignOut(); handleClose() }}
+            className="w-full flex items-center gap-3 p-3.5 rounded-2xl transition-all cursor-pointer"
             style={{ background: 'var(--border)', border: '1px solid var(--border)', color: 'var(--foreground-muted)' }}
           >
             <LogOut size={15} />
             <span className="text-xs font-black uppercase tracking-wider">Sair da conta</span>
           </motion.button>
+
+          {!confirmDelete ? (
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setConfirmDelete(true)}
+              className="w-full flex items-center gap-3 p-3.5 rounded-2xl transition-all cursor-pointer"
+              style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444' }}
+            >
+              <Trash2 size={15} />
+              <span className="text-xs font-black uppercase tracking-wider">Excluir conta</span>
+            </motion.button>
+          ) : (
+            <div
+              className="w-full flex flex-col gap-2 p-3.5 rounded-2xl"
+              style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)' }}
+            >
+              <p className="text-xs font-black text-center" style={{ color: '#ef4444' }}>
+                Isso apaga tudo. Sem volta.
+              </p>
+              <div className="flex gap-2">
+                <motion.button
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => setConfirmDelete(false)}
+                  className="flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer"
+                  style={{ background: 'var(--border)', color: 'var(--foreground-muted)' }}
+                >
+                  Cancelar
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.96 }}
+                  onClick={handleDeleteAccount}
+                  disabled={deleting}
+                  className="flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer"
+                  style={{ background: '#ef4444', color: 'white', opacity: deleting ? 0.6 : 1 }}
+                >
+                  {deleting ? 'Apagando...' : 'Confirmar'}
+                </motion.button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -179,7 +262,7 @@ export function ProfileModal({ open, user, userName, onClose, onSignOut, onNameC
     <AnimatePresence>
       {open && (
         <>
-          <motion.div onClick={onClose} className="fixed inset-0 backdrop-blur-sm z-40" style={{ background: 'var(--overlay)' }} />
+          <motion.div onClick={handleClose} className="fixed inset-0 backdrop-blur-sm z-40" style={{ background: 'var(--overlay)' }} />
           <motion.div className="md:hidden fixed bottom-0 left-0 right-0 z-50 rounded-t-[2rem] overflow-hidden" style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)' }}>
             {content}
           </motion.div>
