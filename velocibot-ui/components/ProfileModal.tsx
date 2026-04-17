@@ -33,8 +33,12 @@ export function ProfileModal({ open, user, userName, onClose, onSignOut, onNameC
   const [nameValue, setNameValue] = useState(userName ?? fallbackName)
   const [savedName, setSavedName] = useState(userName ?? fallbackName)
 
-  // Carrega o nome do banco sempre que o modal abre ou o user muda.
-  // Garante que cada conta veja seu próprio nome, vindo do banco.
+  useEffect(() => {
+    const newName = userName ?? fallbackName
+    setSavedName(newName)
+    setNameValue(newName)
+  }, [user?.id])
+
   useEffect(() => {
     if (!open || !user?.id) return
 
@@ -48,7 +52,6 @@ export function ProfileModal({ open, user, userName, onClose, onSignOut, onNameC
           setSavedName(data.name)
           setNameValue(data.name)
         } else {
-          // sem registro no banco ainda — usa fallback
           setSavedName(userName ?? fallbackName)
           setNameValue(userName ?? fallbackName)
         }
@@ -64,7 +67,6 @@ export function ProfileModal({ open, user, userName, onClose, onSignOut, onNameC
     onNameChange?.(trimmed)
 
     if (user?.id) {
-      // upsert garante que cria o registro se não existir
       await supabase
         .from('user_profiles')
         .upsert({ id: user.id, name: trimmed }, { onConflict: 'id' })
@@ -73,8 +75,20 @@ export function ProfileModal({ open, user, userName, onClose, onSignOut, onNameC
 
   const content = (
     <div className="flex flex-col gap-1">
-      {/* Avatar + info */}
-      <div className="flex flex-col items-center gap-3 py-6 px-4">
+
+      {/* Botão X */}
+      <div className="flex justify-end px-4 pt-4">
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={onClose}
+          className="p-1.5 rounded-xl cursor-pointer transition-opacity hover:opacity-80"
+          style={{ color: 'var(--foreground-muted)' }}
+        >
+          <X size={18} />
+        </motion.button>
+      </div>
+
+      <div className="flex flex-col items-center gap-3 py-2 px-4 pb-6">
         <div className="w-16 h-16 rounded-full bg-yellow-500 flex items-center justify-center shadow-[0_0_30px_rgba(234,179,8,0.3)]">
           <span className="text-black font-black text-2xl">{initial}</span>
         </div>
@@ -86,7 +100,6 @@ export function ProfileModal({ open, user, userName, onClose, onSignOut, onNameC
 
       <div className="h-[1px] mx-4 mb-2" style={{ background: 'var(--border)' }} />
 
-      {/* Nome */}
       <div className="px-4 mb-1">
         <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-2 px-1" style={{ color: 'var(--foreground-muted)' }}>Personalização</p>
         <div className="flex items-center gap-2 p-3 rounded-2xl" style={{ background: 'var(--border)', border: '1px solid var(--border)' }}>
@@ -127,7 +140,6 @@ export function ProfileModal({ open, user, userName, onClose, onSignOut, onNameC
         </div>
       </div>
 
-      {/* Aparência */}
       <div className="px-4 mb-2">
         <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-2 px-1 mt-3" style={{ color: 'var(--foreground-muted)' }}>Aparência</p>
         <div className="flex gap-2">
@@ -156,7 +168,6 @@ export function ProfileModal({ open, user, userName, onClose, onSignOut, onNameC
 
       <div className="h-[1px] mx-4 mb-2" style={{ background: 'var(--border)' }} />
 
-      {/* Sair */}
       {onSignOut && (
         <div className="px-4 pb-4">
           <motion.button
@@ -164,14 +175,6 @@ export function ProfileModal({ open, user, userName, onClose, onSignOut, onNameC
             onClick={() => { onSignOut(); onClose() }}
             className="w-full flex items-center gap-3 p-3.5 rounded-2xl transition-all cursor-pointer group"
             style={{ background: 'var(--border)', border: '1px solid var(--border)', color: 'var(--foreground-muted)' }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.color = '#f87171'
-              ;(e.currentTarget as HTMLElement).style.borderColor = 'rgba(239,68,68,0.2)'
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLElement).style.color = 'var(--foreground-muted)'
-              ;(e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'
-            }}
           >
             <LogOut size={15} />
             <span className="text-xs font-black uppercase tracking-wider">Sair da conta</span>
@@ -185,55 +188,11 @@ export function ProfileModal({ open, user, userName, onClose, onSignOut, onNameC
     <AnimatePresence>
       {open && (
         <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 backdrop-blur-sm z-40"
-            style={{ background: 'var(--overlay)' }}
-          />
-
-          {/* Mobile drawer */}
-          <motion.div
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="md:hidden fixed bottom-0 left-0 right-0 z-50 rounded-t-[2rem] overflow-hidden"
-            style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)' }}
-          >
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 rounded-full" style={{ background: 'var(--border-muted)' }} />
-            </div>
-            <div className="flex justify-between items-center px-5 pt-2">
-              <p className="text-[11px] font-black uppercase tracking-[0.2em]" style={{ color: 'var(--foreground-muted)' }}>Perfil</p>
-              <motion.button whileTap={{ scale: 0.9 }} onClick={onClose} className="p-2 rounded-xl cursor-pointer" style={{ color: 'var(--foreground-muted)' }}>
-                <X size={16} />
-              </motion.button>
-            </div>
+          <motion.div onClick={onClose} className="fixed inset-0 backdrop-blur-sm z-40" style={{ background: 'var(--overlay)' }} />
+          <motion.div className="md:hidden fixed bottom-0 left-0 right-0 z-50 rounded-t-[2rem] overflow-hidden" style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)' }}>
             {content}
           </motion.div>
-
-          {/* Desktop modal */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 8 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="hidden md:block fixed bottom-20 left-4 z-50 w-[300px] rounded-[2rem] overflow-hidden"
-            style={{
-              background: 'var(--surface)',
-              border: '1px solid var(--border)',
-              boxShadow: '0 0 60px var(--shadow-color)'
-            }}
-          >
-            <div className="flex justify-between items-center px-5 pt-4">
-              <p className="text-[11px] font-black uppercase tracking-[0.2em]" style={{ color: 'var(--foreground-muted)' }}>Perfil</p>
-              <motion.button whileTap={{ scale: 0.9 }} onClick={onClose} className="p-2 rounded-xl cursor-pointer" style={{ color: 'var(--foreground-muted)' }}>
-                <X size={16} />
-              </motion.button>
-            </div>
+          <motion.div className="hidden md:block fixed bottom-20 left-4 z-50 w-[300px] rounded-[2rem] overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
             {content}
           </motion.div>
         </>
@@ -241,3 +200,4 @@ export function ProfileModal({ open, user, userName, onClose, onSignOut, onNameC
     </AnimatePresence>
   )
 }
+

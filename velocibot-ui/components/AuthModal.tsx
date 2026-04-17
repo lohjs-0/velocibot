@@ -16,6 +16,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   'Password should be at least 6 characters': 'Senha muito curta.',
   'Nome inválido.': 'Nome inválido.',
   'Senha deve ter pelo menos 8 caracteres.': 'Senha deve ter pelo menos 8 caracteres.',
+  
+  'RATE_LIMIT': 'Muitas tentativas. Aguarde alguns minutos e tente novamente.',
 }
 
 function parseError(err: unknown): string {
@@ -39,7 +41,6 @@ export function AuthModal({ onClose }: Props) {
     setError('')
     setSuccess('')
 
-    // Debounce leve — evita spam de requisição
     const now = Date.now()
     if (now - lastAttempt < 1500) return
     setLastAttempt(now)
@@ -49,7 +50,7 @@ export function AuthModal({ onClose }: Props) {
       setLoading(true)
       try {
         await resetPassword(email)
-        setSuccess('Email de redefinição enviado! Verifique sua caixa de entrada.')
+        setSuccess('Email enviado! Verifique sua caixa de entrada (e o spam).')
       } catch (err) {
         setError(parseError(err))
       } finally {

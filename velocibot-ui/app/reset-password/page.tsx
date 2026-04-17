@@ -31,38 +31,40 @@ export default function ResetPassword() {
   const [lastAttempt, setLastAttempt] = useState(0)
 
   useEffect(() => {
-    const handleRecovery = async () => {
-      // 1. Tenta trocar o ?code= da URL por sessão (fluxo PKCE)
-      const code = new URLSearchParams(window.location.search).get('code')
+    // Listener DEVE ser registrado antes de qualquer await
+    // para não perder o evento PASSWORD_RECOVERY que dispara na chegada
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
+        setReady(true)
+      }
+    })
 
+    const handleRecovery = async () => {
+      // Fluxo PKCE: Supabase manda ?code= na URL
+      const code = new URLSearchParams(window.location.search).get('code')
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code)
         if (error) {
           setError('Link expirado ou inválido. Solicite um novo.')
-          return
         }
-        setReady(true)
+        // setReady vai ser chamado pelo listener acima após a troca
         return
       }
 
-      // 2. Fallback: sessão já existente (ex: usuário voltou à aba)
+      // Fallback: sessão já existe (usuário voltou à aba)
       const { data } = await supabase.auth.getSession()
       if (data.session) {
         setReady(true)
         return
       }
 
-      // 3. Último recurso: listener para magic link / fluxo implícito
-      const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
-        if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
-          setReady(true)
-        }
-      })
-
-      return () => listener.subscription.unsubscribe()
+      // Se não tem code nem sessão, link inválido
+      setError('Link expirado ou inválido. Solicite um novo.')
     }
 
     handleRecovery()
+
+    return () => listener.subscription.unsubscribe()
   }, [supabase])
 
   const handleReset = useCallback(async () => {
@@ -144,10 +146,16 @@ export default function ResetPassword() {
               animate={{ opacity: 1 }}
               className="flex flex-col items-center gap-3 py-4 text-center"
             >
-              <Loader2 size={32} className="animate-spin" style={{ color: 'var(--accent-gold)' }} />
-              <p className="text-xs" style={{ color: 'var(--foreground-muted)' }}>
-                Verificando link...
-              </p>
+              {error ? (
+                <p className="text-red-400 text-xs text-center">{error}</p>
+              ) : (
+                <>
+                  <Loader2 size={32} className="animate-spin" style={{ color: 'var(--accent-gold)' }} />
+                  <p className="text-xs" style={{ color: 'var(--foreground-muted)' }}>
+                    Verificando link...
+                  </p>
+                </>
+              )}
             </motion.div>
 
           ) : (
@@ -237,3 +245,4 @@ export default function ResetPassword() {
     </div>
   )
 }
+

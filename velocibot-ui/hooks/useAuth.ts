@@ -25,12 +25,14 @@ export function useAuth() {
       if (u) loadUserName(u.id)
       setLoading(false)
     })
+
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       const u = session?.user ?? null
       setUser(u)
       if (u) loadUserName(u.id)
       else setUserName(null)
     })
+
     return () => listener.subscription.unsubscribe()
   }, [loadUserName, supabase])
 
@@ -41,6 +43,7 @@ export function useAuth() {
 
     const { data, error } = await supabase.auth.signUp({ email, password })
     if (error) throw error
+
     if (data.user) {
       await supabase.from('user_profiles').insert({
         id: data.user.id,
@@ -66,10 +69,18 @@ export function useAuth() {
   }
 
   const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+     
       redirectTo: `${window.location.origin}/reset-password`,
     })
-    if (error) throw error
+
+    if (error) {
+      
+      if (error.status === 429 || error.message.toLowerCase().includes('rate limit')) {
+        throw new Error('RATE_LIMIT')
+      }
+      throw error
+    }
   }
 
   return { user, userName, loading, signUp, signIn, signOut, resetPassword }

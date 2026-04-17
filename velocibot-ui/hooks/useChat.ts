@@ -36,6 +36,8 @@ function cleanBotResponse(text: string) {
   try {
     const parsed = JSON.parse(cleaned);
     if (parsed?.response) cleaned = parsed.response;
+    else if (parsed?.message) cleaned = parsed.message;
+    else if (parsed?.reply) cleaned = parsed.reply;
     else if (typeof parsed === "string") cleaned = parsed;
   } catch {
     const match = cleaned.match(/"response"\s*:\s*"((?:[^"\\]|\\.)*)"/);
@@ -58,8 +60,13 @@ function resizeAndConvertToBase64(file: File, maxSize = 800): Promise<string> {
         const canvas = document.createElement("canvas");
         let { width, height } = img;
         if (width > maxSize || height > maxSize) {
-          if (width > height) { height = Math.round((height * maxSize) / width); width = maxSize; }
-          else { width = Math.round((width * maxSize) / height); height = maxSize; }
+          if (width > height) {
+            height = Math.round((height * maxSize) / width);
+            width = maxSize;
+          } else {
+            width = Math.round((width * maxSize) / height);
+            height = maxSize;
+          }
         }
         canvas.width = width;
         canvas.height = height;
@@ -83,29 +90,12 @@ async function extractPdfText(file: File): Promise<string> {
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
-    const pageText = content.items.map((item) => ("str" in item ? item.str : "")).join(" ");
+    const pageText = content.items
+      .map((item) => ("str" in item ? item.str : ""))
+      .join(" ");
     fullText += `\n[Página ${i}]\n${pageText}`;
   }
   return fullText.trim();
-}
-
-async function generateChatTitle(firstMessage: string): Promise<string> {
-  try {
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: `Gere um título curto (máximo 5 palavras, sem aspas, sem pontuação no final) para uma conversa que começa com: "${firstMessage.slice(0, 200)}"`,
-        history: [],
-      }),
-    });
-    const data = await res.json();
-    const raw = cleanBotResponse(data.reply || data.response || "");
-    const title = raw.split("\n")[0].trim().slice(0, 40);
-    return title || "Nova conversa";
-  } catch {
-    return "Nova conversa";
-  }
 }
 
 export function useChat(user: User | null, userName?: string | null) {
@@ -120,11 +110,33 @@ export function useChat(user: User | null, userName?: string | null) {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [userMemory, setUserMemory] = useState<string>("");
+  // ✅ NOVO: controla se a autenticação já foi resolvida
+  const [authReady, setAuthReady] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isUserScrolling = useRef(false);
   const scrollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Helpers de token ──────────────────────────────────────────────────────
+  async function getAuthHeaders(): Promise<HeadersInit> {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    return {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+  }
+
+  // ✅ NOVO: aguarda o Supabase resolver o estado de auth antes de qualquer coisa
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, _session) => {
+      setAuthReady(true);
+    });
+    return () => subscription.unsubscribe();
+  }, [supabase]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -133,14 +145,16 @@ export function useChat(user: User | null, userName?: string | null) {
     }
   }, [input]);
 
+  // ✅ CORRIGIDO: só carrega após auth estar pronta
   useEffect(() => {
+    if (!authReady) return;
     if (user) {
       loadChatsFromSupabase();
       loadUserMemory();
     } else {
       loadChatsFromLocalStorage();
     }
-  }, [user]);
+  }, [user, authReady]);
 
   const loadUserMemory = async () => {
     if (!user) return;
@@ -161,8 +175,15 @@ export function useChat(user: User | null, userName?: string | null) {
       .order("created_at", { ascending: false });
 
     if (!chatsData || chatsData.length === 0) {
-      const newChat: Chat = { id: crypto.randomUUID(), title: "Nova conversa", messages: [], createdAt: Date.now() };
-      await supabase.from("chats").insert({ id: newChat.id, user_id: user.id, title: newChat.title });
+      const newChat: Chat = {
+        id: crypto.randomUUID(),
+        title: "Nova conversa",
+        messages: [],
+        createdAt: Date.now(),
+      };
+      await supabase
+        .from("chats")
+        .insert({ id: newChat.id, user_id: user.id, title: newChat.title });
       setChats([newChat]);
       setCurrentChatId(newChat.id);
       return;
@@ -175,7 +196,9 @@ export function useChat(user: User | null, userName?: string | null) {
       .eq("chat_id", firstChat.id)
       .order("created_at", { ascending: true });
 
-    const parsedMessages: Message[] = (messagesData as SupabaseMessage[] || []).map((m) => ({
+    const parsedMessages: Message[] = (
+      (messagesData as SupabaseMessage[]) || []
+    ).map((m) => ({
       role: m.role as "user" | "bot",
       content: m.content,
     }));
@@ -193,7 +216,7 @@ export function useChat(user: User | null, userName?: string | null) {
   };
 
   const loadChatsFromLocalStorage = () => {
-    const saved = localStorage.getItem("buildhub_chats");
+    const saved = localStorage.getItem("velocibot_chats");
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -207,16 +230,23 @@ export function useChat(user: User | null, userName?: string | null) {
         console.error("Erro ao carregar chats:", e);
       }
     }
-    const newChat: Chat = { id: crypto.randomUUID(), title: "Nova conversa", messages: [], createdAt: Date.now() };
+    const newChat: Chat = {
+      id: crypto.randomUUID(),
+      title: "Nova conversa",
+      messages: [],
+      createdAt: Date.now(),
+    };
     setChats([newChat]);
     setCurrentChatId(newChat.id);
   };
 
+  // ✅ CORRIGIDO: só salva no localStorage após auth pronta e sem usuário logado
   useEffect(() => {
+    if (!authReady) return;
     if (!user && chats.length > 0) {
-      localStorage.setItem("buildhub_chats", JSON.stringify(chats));
+      localStorage.setItem("velocibot_chats", JSON.stringify(chats));
     }
-  }, [chats, user]);
+  }, [chats, user, authReady]);
 
   useEffect(() => {
     if (isUserScrolling.current) return;
@@ -229,7 +259,9 @@ export function useChat(user: User | null, userName?: string | null) {
     if (!currentChatId) return;
     setChats((prev) =>
       prev.map((chat) =>
-        chat.id === currentChatId ? { ...chat, messages: [...messages] } : chat
+        chat.id === currentChatId
+          ? { ...chat, messages: [...messages] }
+          : chat
       )
     );
   }, [messages, currentChatId]);
@@ -240,7 +272,9 @@ export function useChat(user: User | null, userName?: string | null) {
     const handleScroll = () => {
       isUserScrolling.current = true;
       if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
-      scrollTimeout.current = setTimeout(() => { isUserScrolling.current = false; }, 1500);
+      scrollTimeout.current = setTimeout(() => {
+        isUserScrolling.current = false;
+      }, 1500);
     };
     container.addEventListener("scroll", handleScroll, { passive: true });
     return () => container.removeEventListener("scroll", handleScroll);
@@ -257,7 +291,11 @@ export function useChat(user: User | null, userName?: string | null) {
   const handleShare = async (text: string) => {
     if (navigator.share) {
       try {
-        await navigator.share({ title: "VelociBot - Resposta", text: text.slice(0, 100) + "...", url: window.location.href });
+        await navigator.share({
+          title: "VelociBot - Resposta",
+          text: text.slice(0, 100) + "...",
+          url: window.location.href,
+        });
       } catch (err) {
         console.log("Erro ao compartilhar:", err);
       }
@@ -267,9 +305,16 @@ export function useChat(user: User | null, userName?: string | null) {
   };
 
   const createNewChat = async () => {
-    const newChat: Chat = { id: crypto.randomUUID(), title: "Nova conversa", messages: [], createdAt: Date.now() };
+    const newChat: Chat = {
+      id: crypto.randomUUID(),
+      title: "Nova conversa",
+      messages: [],
+      createdAt: Date.now(),
+    };
     if (user) {
-      await supabase.from("chats").insert({ id: newChat.id, user_id: user.id, title: newChat.title });
+      await supabase
+        .from("chats")
+        .insert({ id: newChat.id, user_id: user.id, title: newChat.title });
     }
     setChats((prev) => [newChat, ...prev]);
     setCurrentChatId(newChat.id);
@@ -286,7 +331,12 @@ export function useChat(user: User | null, userName?: string | null) {
           setCurrentChatId(updated[0].id);
           setMessages(updated[0].messages);
         } else {
-          const newChat: Chat = { id: crypto.randomUUID(), title: "Nova conversa", messages: [], createdAt: Date.now() };
+          const newChat: Chat = {
+            id: crypto.randomUUID(),
+            title: "Nova conversa",
+            messages: [],
+            createdAt: Date.now(),
+          };
           setCurrentChatId(newChat.id);
           setMessages([]);
           return [newChat];
@@ -305,12 +355,18 @@ export function useChat(user: User | null, userName?: string | null) {
         .select("*")
         .eq("chat_id", chat.id)
         .order("created_at", { ascending: true });
-      const parsedMessages: Message[] = (messagesData as SupabaseMessage[] || []).map((m) => ({
+      const parsedMessages: Message[] = (
+        (messagesData as SupabaseMessage[]) || []
+      ).map((m) => ({
         role: m.role as "user" | "bot",
         content: m.content,
       }));
       setMessages(parsedMessages);
-      setChats((prev) => prev.map((c) => c.id === chat.id ? { ...c, messages: parsedMessages } : c));
+      setChats((prev) =>
+        prev.map((c) =>
+          c.id === chat.id ? { ...c, messages: parsedMessages } : c
+        )
+      );
     } else {
       setMessages([...chat.messages]);
     }
@@ -319,7 +375,17 @@ export function useChat(user: User | null, userName?: string | null) {
   const updateMemory = async (newMemory: string) => {
     setUserMemory(newMemory);
     if (!user) return;
-    await supabase.from("user_profiles").update({ memory: newMemory }).eq("id", user.id);
+    await supabase
+      .from("user_profiles")
+      .update({ memory: newMemory })
+      .eq("id", user.id);
+  };
+
+  // ✅ NOVO: limpa o localStorage no logout
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    localStorage.removeItem("velocibot_chats");
+    localStorage.removeItem("velocibot_username");
   };
 
   const sendMessage = async (overrideInput?: string, file?: File | null) => {
@@ -327,7 +393,9 @@ export function useChat(user: User | null, userName?: string | null) {
     if (!finalInput.trim() && !file) return;
     if (loading) return;
 
-    const formattedInput = finalInput.trim() ? formatUserMessage(finalInput) : "";
+    const formattedInput = finalInput.trim()
+      ? formatUserMessage(finalInput)
+      : "";
 
     let imageBase64: string | null = null;
     let imagePreviewUrl: string | null = null;
@@ -338,8 +406,11 @@ export function useChat(user: User | null, userName?: string | null) {
         imageBase64 = await resizeAndConvertToBase64(file);
         imagePreviewUrl = imageBase64;
       } else if (file.type === "application/pdf") {
-        try { pdfText = await extractPdfText(file); }
-        catch (err) { console.error("Erro ao extrair PDF:", err); }
+        try {
+          pdfText = await extractPdfText(file);
+        } catch (err) {
+          console.error("Erro ao extrair PDF:", err);
+        }
       }
     }
 
@@ -364,17 +435,21 @@ export function useChat(user: User | null, userName?: string | null) {
 
     try {
       const contextParts = [
-        userName ? `O nome do usuário é ${userName}. Chame-o pelo nome quando fizer sentido.` : "",
+        userName
+          ? `O nome do usuário é ${userName}. Chame-o pelo nome quando fizer sentido.`
+          : "",
         userMemory ? `Memória do usuário: ${userMemory}` : "",
       ].filter(Boolean);
 
-      const memoryContext = contextParts.length > 0
-        ? `[CONTEXTO DO USUÁRIO]:\n${contextParts.join("\n")}\n\n`
-        : "";
+      const memoryContext =
+        contextParts.length > 0
+          ? `[CONTEXTO DO USUÁRIO]:\n${contextParts.join("\n")}\n\n`
+          : "";
 
+      const headers = await getAuthHeaders();
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           message: memoryContext + messageToSend,
           image: imageBase64,
@@ -384,13 +459,18 @@ export function useChat(user: User | null, userName?: string | null) {
       });
 
       const text = await res.text();
-      if (!res.ok) throw new Error("Falha na API");
+      if (!res.ok) throw new Error(`Falha na API: ${res.status}`);
 
       let data;
-      try { data = JSON.parse(text); }
-      catch { data = { response: text }; }
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { message: text };
+      }
 
-      const botReply = cleanBotResponse(data.reply || data.response || text || "Sem resposta");
+      const botReply = cleanBotResponse(
+        data.reply || data.response || data.message || text || "Sem resposta"
+      );
 
       setMessages((prev) => {
         const updated = [...prev];
@@ -401,46 +481,92 @@ export function useChat(user: User | null, userName?: string | null) {
 
       if (user && currentChatId) {
         await supabase.from("messages").insert([
-          { id: crypto.randomUUID(), chat_id: currentChatId, role: "user", content: userMessage.content },
-          { id: crypto.randomUUID(), chat_id: currentChatId, role: "bot", content: botReply },
+          {
+            id: crypto.randomUUID(),
+            chat_id: currentChatId,
+            role: "user",
+            content: userMessage.content,
+          },
+          {
+            id: crypto.randomUUID(),
+            chat_id: currentChatId,
+            role: "bot",
+            content: botReply,
+          },
         ]);
 
         const totalMessages = messages.length + 2;
         if (totalMessages % 6 === 0) {
           const botReplyMessage: Message = { role: "bot", content: botReply };
-          const recentHistory: Message[] = [...history, userMessage, botReplyMessage];
+          const recentHistory: Message[] = [
+            ...history,
+            userMessage,
+            botReplyMessage,
+          ];
 
           const recentHistoryText = recentHistory
-            .map((m) => `${m.role === "user" ? "Usuário" : "VelociBot"}: ${m.content.slice(0, 300)}`)
+            .map(
+              (m) =>
+                `${m.role === "user" ? "Usuário" : "VelociBot"}: ${m.content.slice(0, 300)}`
+            )
             .join("\n");
 
+          const memHeaders = await getAuthHeaders();
           const memRes = await fetch("/api/chat", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: memHeaders,
             body: JSON.stringify({
               message: `Com base nessa conversa, extraia fatos importantes sobre o usuário (linguagens preferidas, projetos, dificuldades recorrentes, estilo de código). Seja conciso, máximo 5 linhas:\n\n${recentHistoryText}`,
               history: [],
             }),
           });
           const memData = await memRes.json();
-          const newMemory = cleanBotResponse(memData.reply || memData.response || "");
+          const newMemory = cleanBotResponse(
+            memData.reply || memData.response || memData.message || ""
+          );
           if (newMemory) await updateMemory(newMemory);
         }
       }
 
       if (isFirstMessage && currentChatId) {
-        const titleSource = finalInput.trim() || (pdfText ? `PDF: ${file?.name}` : "imagem");
-        generateChatTitle(titleSource).then(async (title) => {
-          setChats((prev) => prev.map((chat) => chat.id === currentChatId ? { ...chat, title } : chat));
-          if (user) await supabase.from("chats").update({ title }).eq("id", currentChatId);
+        const titleSource =
+          finalInput.trim() || (pdfText ? `PDF: ${file?.name}` : "imagem");
+
+        const titleHeaders = await getAuthHeaders();
+        const titleRes = await fetch("/api/chat", {
+          method: "POST",
+          headers: titleHeaders,
+          body: JSON.stringify({
+            message: `Gere um título curto (máximo 5 palavras, sem aspas, sem pontuação no final) para uma conversa que começa com: "${titleSource.slice(0, 200)}"`,
+            history: [],
+          }),
         });
+        const titleData = await titleRes.json();
+        const rawTitle = cleanBotResponse(
+          titleData.reply || titleData.response || titleData.message || ""
+        );
+        const title =
+          rawTitle.split("\n")[0].trim().slice(0, 40) || "Nova conversa";
+
+        setChats((prev) =>
+          prev.map((chat) =>
+            chat.id === currentChatId ? { ...chat, title } : chat
+          )
+        );
+        if (user)
+          await supabase
+            .from("chats")
+            .update({ title })
+            .eq("id", currentChatId);
       }
     } catch (err) {
       console.error("Erro no envio:", err);
       setMessages((prev) => {
         const updated = [...prev];
         const lastMsg = updated[updated.length - 1];
-        if (lastMsg && lastMsg.role === "bot") lastMsg.content = "Erro ao conectar com o servidor. Tente novamente! 🚀";
+        if (lastMsg && lastMsg.role === "bot")
+          lastMsg.content =
+            "Erro ao conectar com o servidor. Tente novamente! 🚀";
         return updated;
       });
     } finally {
@@ -452,6 +578,6 @@ export function useChat(user: User | null, userName?: string | null) {
     input, setInput, messages, loading, copiedId, chats, currentChatId,
     deleteConfirmId, setDeleteConfirmId, attachedFile, setAttachedFile,
     userMemory, bottomRef, textareaRef, handleCopy, handleShare,
-    createNewChat, deleteChat, selectChat, sendMessage,
+    createNewChat, deleteChat, selectChat, sendMessage, signOut,
   };
 }
