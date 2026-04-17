@@ -16,7 +16,6 @@ const ERROR_MESSAGES: Record<string, string> = {
   'Password should be at least 6 characters': 'Senha muito curta.',
   'Nome inválido.': 'Nome inválido.',
   'Senha deve ter pelo menos 8 caracteres.': 'Senha deve ter pelo menos 8 caracteres.',
-  
   'RATE_LIMIT': 'Muitas tentativas. Aguarde alguns minutos e tente novamente.',
 }
 
@@ -26,7 +25,7 @@ function parseError(err: unknown): string {
 }
 
 export function AuthModal({ onClose }: Props) {
-  const { signIn, signUp, resetPassword } = useAuth()
+  const { signIn, signUp, signInWithGoogle, resetPassword } = useAuth()
   const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -34,6 +33,7 @@ export function AuthModal({ onClose }: Props) {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [loadingGoogle, setLoadingGoogle] = useState(false)
   const [success, setSuccess] = useState('')
   const [lastAttempt, setLastAttempt] = useState(0)
 
@@ -79,6 +79,17 @@ export function AuthModal({ onClose }: Props) {
     }
   }
 
+  const handleGoogleSignIn = async () => {
+    setError('')
+    setLoadingGoogle(true)
+    try {
+      await signInWithGoogle()
+    } catch (err) {
+      setError(parseError(err))
+      setLoadingGoogle(false)
+    }
+  }
+
   const switchMode = (next: 'login' | 'register' | 'forgot') => {
     setMode(next)
     setError('')
@@ -119,6 +130,40 @@ export function AuthModal({ onClose }: Props) {
             {mode === 'forgot' && 'Redefinir senha'}
           </p>
         </div>
+
+        {/* Botão Google — só no login e register */}
+        <AnimatePresence>
+          {mode !== 'forgot' && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-4">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleGoogleSignIn}
+                disabled={loadingGoogle}
+                className="w-full flex items-center justify-center gap-3 py-3.5 rounded-2xl font-semibold text-sm transition-all cursor-pointer disabled:opacity-60"
+                style={{ background: 'var(--border)', border: '1px solid var(--border-muted)', color: 'var(--foreground)' }}
+              >
+                {loadingGoogle ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 48 48" fill="none">
+                    <path d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.5 6.5 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 20-9 20-20 0-1.2-.1-2.5-.4-3.5z" fill="#FFC107"/>
+                    <path d="M6.3 14.7l6.6 4.8C14.7 16.1 19 13 24 13c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.5 6.5 29.6 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" fill="#FF3D00"/>
+                    <path d="M24 44c5.5 0 10.4-2.1 14.1-5.4l-6.5-5.5C29.6 35 26.9 36 24 36c-5.3 0-9.7-3.3-11.3-7.9L6 33.3C9.4 39.7 16.2 44 24 44z" fill="#4CAF50"/>
+                    <path d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.3 4.1-4.2 5.4l6.5 5.5C41.8 36.2 44 30.5 44 24c0-1.2-.1-2.5-.4-3.5z" fill="#1976D2"/>
+                  </svg>
+                )}
+                Continuar com Google
+              </motion.button>
+
+              <div className="flex items-center gap-3 my-4">
+                <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
+                <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--foreground-subtle)' }}>ou</span>
+                <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Campos */}
         <div className="flex flex-col gap-3">

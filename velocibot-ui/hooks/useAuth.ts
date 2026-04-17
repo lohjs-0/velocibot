@@ -63,6 +63,16 @@ export function useAuth() {
     return data
   }
 
+  const signInWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}`,
+      },
+    })
+    if (error) throw error
+  }
+
   const signOut = async () => {
     await supabase.auth.signOut()
     setUserName(null)
@@ -70,12 +80,10 @@ export function useAuth() {
 
   const resetPassword = async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-     
       redirectTo: `${window.location.origin}/reset-password`,
     })
 
     if (error) {
-      
       if (error.status === 429 || error.message.toLowerCase().includes('rate limit')) {
         throw new Error('RATE_LIMIT')
       }
@@ -83,5 +91,5 @@ export function useAuth() {
     }
   }
 
-  return { user, userName, loading, signUp, signIn, signOut, resetPassword }
+  return { user, userName, loading, signUp, signIn, signInWithGoogle, signOut, resetPassword }
 }

@@ -50,7 +50,6 @@ export function ChatInput({
     if (canSend) onSend()
   }
 
-  // ✅ FIX PDF (sem quebrar UI)
   const extractTextFromFile = async (file: File): Promise<string | undefined> => {
     const ext = file.name.split('.').pop()?.toLowerCase()
 
@@ -270,6 +269,16 @@ export function ChatInput({
           style={{ color: 'var(--foreground-subtle)' }}
         >
           VelociBot pode cometer erros — sempre verifique informações importantes
+          {' · '}
+          <a
+            href="/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2 hover:opacity-80 transition-opacity"
+            style={{ color: 'var(--foreground-subtle)' }}
+          >
+            Privacidade
+          </a>
         </motion.p>
       </div>
     </div>
