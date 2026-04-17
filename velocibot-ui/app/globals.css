@@ -34,7 +34,7 @@ html.light {
   --background: #f0efe9;
   --foreground: #111111;
   --foreground-muted: rgba(0, 0, 0, 0.45);
-  --foreground-subtle: rgba(0, 0, 0, 0.12);
+  --foreground-subtle: rgba(0, 0, 0, 0.35);
   --surface: #e8e7e1;
   --surface-2: #ffffff;
   --surface-3: #edede7;
