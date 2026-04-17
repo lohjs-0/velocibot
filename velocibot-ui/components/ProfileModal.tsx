@@ -1,13 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, LogOut, Sun, Moon, Monitor, Pencil, Check, Trash2 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import type { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase'
-
-const supabase = createClient()
 
 interface Props {
   open: boolean
@@ -27,6 +25,9 @@ const themes = [
 export function ProfileModal({ open, user, userName, onClose, onSignOut, onNameChange }: Props) {
   const fallbackName = user?.email?.split('@')[0] ?? 'Usuário'
   const displayEmail = user?.email ?? ''
+
+  // ✅ useMemo — sem recriar cliente a cada render
+  const supabase = useMemo(() => createClient(), [])
 
   const { theme, setTheme } = useTheme()
   const [editingName, setEditingName] = useState(false)
@@ -75,30 +76,25 @@ export function ProfileModal({ open, user, userName, onClose, onSignOut, onNameC
     setDeleting(true)
 
     try {
-      const { data: chats } = await supabase
-        .from('chats')
-        .select('id')
-        .eq('user_id', user.id)
+      // ✅ Busca o token JWT da sessão atual
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData.session?.access_token
 
-      if (chats && chats.length > 0) {
-        const chatIds = chats.map(c => c.id)
-        await supabase
-          .from('messages')
-          .delete()
-          .in('chat_id', chatIds)
+      if (!token) throw new Error('Sessão inválida.')
+
+      // ✅ Chama a route server-side que usa service role key
+      const res = await fetch('/api/delete-account', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Erro ao excluir conta.')
       }
-
-      await supabase
-        .from('chats')
-        .delete()
-        .eq('user_id', user.id)
-
-      await supabase
-        .from('user_profiles')
-        .delete()
-        .eq('id', user.id)
-
-      await supabase.auth.admin.deleteUser(user.id)
 
       onSignOut?.()
       handleClose()
