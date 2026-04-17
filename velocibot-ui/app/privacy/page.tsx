@@ -49,7 +49,7 @@ export default function PrivacyPage() {
                 ].map((section, i) => (
                     <div
                         key={i}
-                        className="mb-4 rounded-xl px-6 py-5 group transition-all duration-300"
+                        className="mb-4 rounded-xl px-6 py-5 transition-all duration-300"
                         style={{
                             background: 'var(--surface-2)',
                             border: '1px solid var(--border-muted)',
@@ -57,7 +57,7 @@ export default function PrivacyPage() {
                         }}
                         onMouseEnter={e => {
                             const el = e.currentTarget
-                            el.style.background = 'var(--accent-gold-bg)'
+                            el.style.background = 'var(--surface-3)'
                             el.style.border = '1px solid var(--accent-gold-border)'
                         }}
                         onMouseLeave={e => {
@@ -88,8 +88,8 @@ export default function PrivacyPage() {
                     }}
                     onMouseEnter={e => {
                         const el = e.currentTarget
-                        el.style.background = 'var(--surface-2)'
-                        el.style.border = '1px solid var(--border-muted)'
+                        el.style.background = 'var(--surface-3)'
+                        el.style.border = '1px solid var(--accent-gold-border)'
                     }}
                     onMouseLeave={e => {
                         const el = e.currentTarget
@@ -119,21 +119,24 @@ export default function PrivacyPage() {
                 </div>
 
                 {/* Botão voltar */}
+
                 <Link
                     href="/"
-                    className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-full transition-all duration-300 hover:gap-3"
+                    className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-full transition-all duration-300"
                     style={{
                         color: 'var(--background)',
                         background: 'var(--accent-gold)',
                         boxShadow: '0 0 20px var(--accent-gold-bg)',
                     }}
                     onMouseEnter={e => {
-                        (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 0 35px var(--accent-gold-border)'
-                            ; (e.currentTarget as HTMLAnchorElement).style.opacity = '0.9'
+                        const el = e.currentTarget as HTMLAnchorElement
+                        el.style.opacity = '0.85'
+                        el.style.boxShadow = '0 0 35px var(--accent-gold-border)'
                     }}
                     onMouseLeave={e => {
-                        (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 0 20px var(--accent-gold-bg)'
-                            ; (e.currentTarget as HTMLAnchorElement).style.opacity = '1'
+                        const el = e.currentTarget as HTMLAnchorElement
+                        el.style.opacity = '1'
+                        el.style.boxShadow = '0 0 20px var(--accent-gold-bg)'
                     }}
                 >
                     ← Voltar pro VelociBot
