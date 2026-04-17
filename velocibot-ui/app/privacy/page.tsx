@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from 'next/link'
 
 export default function PrivacyPage() {
     return (
@@ -47,10 +47,21 @@ export default function PrivacyPage() {
                 ].map((section, i) => (
                     <div
                         key={i}
-                        className="mb-4 rounded-xl px-6 py-5"
+                        className="mb-4 rounded-xl px-6 py-5 group transition-all duration-300"
                         style={{
                             background: 'var(--surface-2)',
                             border: '1px solid var(--border-muted)',
+                            cursor: 'pointer',
+                        }}
+                        onMouseEnter={e => {
+                            const el = e.currentTarget
+                            el.style.background = 'var(--accent-gold-bg)'
+                            el.style.border = '1px solid var(--accent-gold-border)'
+                        }}
+                        onMouseLeave={e => {
+                            const el = e.currentTarget
+                            el.style.background = 'var(--surface-2)'
+                            el.style.border = '1px solid var(--border-muted)'
                         }}
                     >
                         <h2
@@ -65,11 +76,23 @@ export default function PrivacyPage() {
                     </div>
                 ))}
 
+                {/* Contato */}
                 <div
-                    className="mb-10 rounded-xl px-6 py-5"
+                    className="mb-10 rounded-xl px-6 py-5 transition-all duration-300"
                     style={{
                         background: 'var(--accent-gold-bg)',
                         border: '1px solid var(--accent-gold-border)',
+                        cursor: 'pointer',
+                    }}
+                    onMouseEnter={e => {
+                        const el = e.currentTarget
+                        el.style.background = 'var(--surface-2)'
+                        el.style.border = '1px solid var(--border-muted)'
+                    }}
+                    onMouseLeave={e => {
+                        const el = e.currentTarget
+                        el.style.background = 'var(--accent-gold-bg)'
+                        el.style.border = '1px solid var(--accent-gold-border)'
                     }}
                 >
                     <h2
@@ -93,11 +116,23 @@ export default function PrivacyPage() {
                     </p>
                 </div>
 
-
+                {/* Botão voltar */}
                 <Link
                     href="/"
-                    className="inline-flex items-center gap-2 text-sm font-semibold hover:opacity-80 transition-opacity"
-                    style={{ color: 'var(--accent-gold)' }}
+                    className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-full transition-all duration-300 hover:gap-3"
+                    style={{
+                        color: 'var(--background)',
+                        background: 'var(--accent-gold)',
+                        boxShadow: '0 0 20px var(--accent-gold-bg)',
+                    }}
+                    onMouseEnter={e => {
+                        (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 0 35px var(--accent-gold-border)'
+                            ; (e.currentTarget as HTMLAnchorElement).style.opacity = '0.9'
+                    }}
+                    onMouseLeave={e => {
+                        (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 0 20px var(--accent-gold-bg)'
+                            ; (e.currentTarget as HTMLAnchorElement).style.opacity = '1'
+                    }}
                 >
                     ← Voltar pro VelociBot
                 </Link>
