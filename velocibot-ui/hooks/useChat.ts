@@ -110,7 +110,6 @@ export function useChat(user: User | null, userName?: string | null) {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [userMemory, setUserMemory] = useState<string>("");
-  // ✅ NOVO: controla se a autenticação já foi resolvida
   const [authReady, setAuthReady] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -118,7 +117,6 @@ export function useChat(user: User | null, userName?: string | null) {
   const isUserScrolling = useRef(false);
   const scrollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── Helpers de token ──────────────────────────────────────────────────────
   async function getAuthHeaders(): Promise<HeadersInit> {
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData.session?.access_token;
@@ -128,7 +126,6 @@ export function useChat(user: User | null, userName?: string | null) {
     };
   }
 
-  // ✅ NOVO: aguarda o Supabase resolver o estado de auth antes de qualquer coisa
   useEffect(() => {
     const {
       data: { subscription },
@@ -145,7 +142,6 @@ export function useChat(user: User | null, userName?: string | null) {
     }
   }, [input]);
 
-  // ✅ CORRIGIDO: só carrega após auth estar pronta
   useEffect(() => {
     if (!authReady) return;
     if (user) {
@@ -240,7 +236,6 @@ export function useChat(user: User | null, userName?: string | null) {
     setCurrentChatId(newChat.id);
   };
 
-  // ✅ CORRIGIDO: só salva no localStorage após auth pronta e sem usuário logado
   useEffect(() => {
     if (!authReady) return;
     if (!user && chats.length > 0) {
@@ -322,8 +317,13 @@ export function useChat(user: User | null, userName?: string | null) {
     setInput("");
   };
 
+  // ✅ CORRIGIDO: deleta mensagens antes do chat para evitar reaparecer ao recarregar
   const deleteChat = async (id: string) => {
-    if (user) await supabase.from("chats").delete().eq("id", id);
+    if (user) {
+      await supabase.from("messages").delete().eq("chat_id", id);
+      await supabase.from("chats").delete().eq("id", id);
+    }
+
     setChats((prev) => {
       const updated = prev.filter((chat) => chat.id !== id);
       if (id === currentChatId) {
@@ -381,7 +381,6 @@ export function useChat(user: User | null, userName?: string | null) {
       .eq("id", user.id);
   };
 
-  // ✅ NOVO: limpa o localStorage no logout
   const signOut = async () => {
     await supabase.auth.signOut();
     localStorage.removeItem("velocibot_chats");

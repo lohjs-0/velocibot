@@ -33,12 +33,7 @@ export function ProfileModal({ open, user, userName, onClose, onSignOut, onNameC
   const [nameValue, setNameValue] = useState(userName ?? fallbackName)
   const [savedName, setSavedName] = useState(userName ?? fallbackName)
 
-  useEffect(() => {
-    const newName = userName ?? fallbackName
-    setSavedName(newName)
-    setNameValue(newName)
-  }, [user?.id])
-
+  // Busca o nome do banco quando o modal abre
   useEffect(() => {
     if (!open || !user?.id) return
 
@@ -48,13 +43,9 @@ export function ProfileModal({ open, user, userName, onClose, onSignOut, onNameC
       .eq('id', user.id)
       .single()
       .then(({ data }) => {
-        if (data?.name) {
-          setSavedName(data.name)
-          setNameValue(data.name)
-        } else {
-          setSavedName(userName ?? fallbackName)
-          setNameValue(userName ?? fallbackName)
-        }
+        const name = data?.name ?? userName ?? fallbackName
+        setSavedName(name)
+        setNameValue(name)
       })
   }, [open, user?.id])
 
@@ -200,4 +191,3 @@ export function ProfileModal({ open, user, userName, onClose, onSignOut, onNameC
     </AnimatePresence>
   )
 }
-
