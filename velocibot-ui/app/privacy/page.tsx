@@ -47,7 +47,7 @@ export default function PrivacyPage() {
                         content: 'Você pode pedir exclusão dos seus dados a qualquer momento. Sem burocracia, sem formulário de 12 páginas. Manda um e-mail e resolve.',
                     },
                 ].map((section, i) => (
-                    <div key={i} className="privacy-card mb-10 rounded-xl px-6 py-5">
+                    <div key={i} className="privacy-card mb-4 rounded-xl px-6 py-5">
                         <h2
                             className="text-base font-bold mb-2 uppercase tracking-wider"
                             style={{ color: 'var(--accent-gold)' }}
