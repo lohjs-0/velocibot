@@ -46,39 +46,41 @@ export default function PrivacyPage() {
                         title: 'Seus direitos',
                         content: 'Você pode pedir exclusão dos seus dados a qualquer momento. Sem burocracia, sem formulário de 12 páginas. Manda um e-mail e resolve.',
                     },
-                    {
-                        title: 'Contato',
-                        content: null,
-                    },
                 ].map((section, i) => (
-                    <div key={i} className="privacy-card mb-4 rounded-xl px-6 py-5">
+                    <div key={i} className="privacy-card mb-10 rounded-xl px-6 py-5">
                         <h2
                             className="text-base font-bold mb-2 uppercase tracking-wider"
                             style={{ color: 'var(--accent-gold)' }}
                         >
                             {section.title}
                         </h2>
-                        {section.content ? (
-                            <p className="text-sm leading-relaxed" style={{ color: 'var(--foreground-muted)' }}>
-                                {section.content}
-                            </p>
-                        ) : (
-                            <p className="text-sm leading-relaxed" style={{ color: 'var(--foreground-muted)' }}>
-                                Dúvida, reclamação ou só quer falar com a criadora do dinossauro?{' '}
-                                <a
-                                    href="https://github.com/lohjs-0"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="underline underline-offset-2 hover:opacity-80 transition-opacity font-semibold"
-                                    style={{ color: 'var(--accent-gold)' }}
-                                >
-                                    github.com/lohjs-0
-                                </a>
-                                . O VelociBot morde, mas a dev que o criou responde.
-                            </p>
-                        )}
+                        <p className="text-sm leading-relaxed" style={{ color: 'var(--foreground-muted)' }}>
+                            {section.content}
+                        </p>
                     </div>
                 ))}
+
+                <div className="privacy-card-contact mb-10 rounded-xl px-6 py-5">
+                    <h2
+                        className="text-base font-bold mb-2 uppercase tracking-wider"
+                        style={{ color: 'var(--accent-gold)' }}
+                    >
+                        Contato
+                    </h2>
+                    <p className="text-sm leading-relaxed" style={{ color: 'var(--foreground-muted)' }}>
+                        Dúvida, reclamação ou só quer falar com a criadora do dinossauro?{' '}
+                        <a
+                            href="https://github.com/lohjs-0"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline underline-offset-2 hover:opacity-80 transition-opacity font-semibold"
+                            style={{ color: 'var(--accent-gold)' }}
+                        >
+                            github.com/lohjs-0
+                        </a>
+                        . O VelociBot morde, mas a dev que o criou responde.
+                    </p>
+                </div>
 
                 <Link href="/" className="privacy-back-btn">
                     ← Voltar pro VelociBot
@@ -86,5 +88,5 @@ export default function PrivacyPage() {
 
             </div>
         </main>
-    )
+    );
 }
