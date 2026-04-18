@@ -36,7 +36,7 @@ export default function PrivacyPage() {
                     },
                     {
                         title: 'Segurança',
-                        content: 'Autenticação via Supabase com OAuth 2.0 pelo Google — o VelociBot não armazena senha nenhuma. Se alguém tentar invadir sua conta, vai ter que lidar com 400 milhões de anos de stack antes de chegar em qualquer dado seu.',
+                        content: 'Autenticação via Supabase com OAuth 2.0 pelo Google — o VelociBot não armazena senha nenhuma. Se alguém tentar invadir sua conta, vai ter que lidar com 66 milhões de anos de stack antes de chegar em qualquer dado seu.',
                     },
                     {
                         title: 'Cookies',
