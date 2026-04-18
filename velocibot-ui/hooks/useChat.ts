@@ -117,9 +117,19 @@ export function useChat(user: User | null, userName?: string | null) {
   const isUserScrolling = useRef(false);
   const scrollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // ✅ CORRIGIDO: tenta até 3x com delay para OAuth ter tempo de popular a sessão
   async function getAuthHeaders(): Promise<HeadersInit> {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData.session?.access_token;
+    let token: string | undefined
+
+    for (let i = 0; i < 3; i++) {
+      const { data } = await supabase.auth.getSession()
+      if (data.session?.access_token) {
+        token = data.session.access_token
+        break
+      }
+      await new Promise(r => setTimeout(r, 500))
+    }
+
     return {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -158,7 +168,7 @@ export function useChat(user: User | null, userName?: string | null) {
       .from("user_profiles")
       .select("memory")
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
     if (data?.memory) setUserMemory(data.memory);
   };
 
@@ -177,9 +187,10 @@ export function useChat(user: User | null, userName?: string | null) {
         messages: [],
         createdAt: Date.now(),
       };
+      // ✅ upsert evita 409 em caso de duplicata
       await supabase
         .from("chats")
-        .insert({ id: newChat.id, user_id: user.id, title: newChat.title });
+        .upsert({ id: newChat.id, user_id: user.id, title: newChat.title }, { onConflict: "id" });
       setChats([newChat]);
       setCurrentChatId(newChat.id);
       return;
@@ -307,9 +318,10 @@ export function useChat(user: User | null, userName?: string | null) {
       createdAt: Date.now(),
     };
     if (user) {
+      // ✅ upsert evita 409
       await supabase
         .from("chats")
-        .insert({ id: newChat.id, user_id: user.id, title: newChat.title });
+        .upsert({ id: newChat.id, user_id: user.id, title: newChat.title }, { onConflict: "id" });
     }
     setChats((prev) => [newChat, ...prev]);
     setCurrentChatId(newChat.id);
@@ -317,7 +329,6 @@ export function useChat(user: User | null, userName?: string | null) {
     setInput("");
   };
 
-  // ✅ CORRIGIDO: deleta mensagens antes do chat para evitar reaparecer ao recarregar
   const deleteChat = async (id: string) => {
     if (user) {
       await supabase.from("messages").delete().eq("chat_id", id);
