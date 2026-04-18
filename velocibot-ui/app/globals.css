@@ -130,14 +130,14 @@ body {
 }
 
 .privacy-card-contact {
-  background: var(--accent-gold-bg);
-  border: 1px solid var(--accent-gold-border);
+  background: var(--surface-2);
+  border: 1px solid var(--border-muted);
   cursor: pointer;
   transition: background 0.3s ease, border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .privacy-card-contact:hover {
-  background: var(--surface-2);
+  background: var(--accent-gold-bg);
   border-color: var(--accent-gold-border);
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
