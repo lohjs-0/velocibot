@@ -16,27 +16,29 @@ const supabase = createClient(
 async function rateLimit(identifier: string) {
   const key = `rate:${identifier}`;
   const requests = await redis.incr(key);
-
   if (requests === 1) {
     await redis.expire(key, 60);
   }
-
   return requests <= 10;
 }
 
 export async function POST(req: Request) {
+  // ✅ Payload vazio ou malformado retorna 400 em vez de 500
+  let body;
   try {
-    const body = await req.json();
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Payload inválido" }, { status: 400 });
+  }
 
+  try {
     // 🔐 AUTH
     const authHeader = req.headers.get("authorization");
-
     if (!authHeader) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const tokenJWT = authHeader.replace("Bearer ", "");
-
     const {
       data: { user },
       error: authError,
@@ -47,12 +49,10 @@ export async function POST(req: Request) {
     }
 
     // 🌐 IP
-    const ip =
-      req.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
 
     // 🔐 RATE LIMIT
     const identifier = `${ip}:${user.id}`;
-
     if (!(await rateLimit(identifier))) {
       return NextResponse.json(
         { error: "Too many requests" },
@@ -81,7 +81,6 @@ export async function POST(req: Request) {
     );
 
     const internalToken = process.env.INTERNAL_API_TOKEN;
-
     if (!internalToken) {
       return NextResponse.json(
         { error: "Token interno não configurado" },
@@ -125,7 +124,6 @@ ${sanitizedMessage}
       data = { raw: text };
     }
 
-    // 🔥 PADRÃO FINAL (CORRIGIDO)
     return NextResponse.json(
       {
         message: data.response || data.message || data.raw || "Sem resposta",
@@ -136,10 +134,6 @@ ${sanitizedMessage}
     );
   } catch (error) {
     console.error("❌ erro route.ts:", error);
-
-    return NextResponse.json(
-      { error: "Erro interno" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
 }
