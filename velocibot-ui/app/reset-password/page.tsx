@@ -31,8 +31,7 @@ export default function ResetPassword() {
   const [lastAttempt, setLastAttempt] = useState(0)
 
   useEffect(() => {
-    // Listener DEVE ser registrado antes de qualquer await
-    // para não perder o evento PASSWORD_RECOVERY que dispara na chegada
+    
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
         setReady(true)
@@ -40,25 +39,23 @@ export default function ResetPassword() {
     })
 
     const handleRecovery = async () => {
-      // Fluxo PKCE: Supabase manda ?code= na URL
+      
       const code = new URLSearchParams(window.location.search).get('code')
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code)
         if (error) {
           setError('Link expirado ou inválido. Solicite um novo.')
         }
-        // setReady vai ser chamado pelo listener acima após a troca
+        
         return
       }
 
-      // Fallback: sessão já existe (usuário voltou à aba)
       const { data } = await supabase.auth.getSession()
       if (data.session) {
         setReady(true)
         return
       }
 
-      // Se não tem code nem sessão, link inválido
       setError('Link expirado ou inválido. Solicite um novo.')
     }
 

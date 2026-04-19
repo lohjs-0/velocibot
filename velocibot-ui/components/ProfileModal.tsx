@@ -26,7 +26,6 @@ export function ProfileModal({ open, user, userName, onClose, onSignOut, onNameC
   const fallbackName = user?.email?.split('@')[0] ?? 'Usuário'
   const displayEmail = user?.email ?? ''
 
-  // ✅ useMemo — sem recriar cliente a cada render
   const supabase = useMemo(() => createClient(), [])
 
   const { theme, setTheme } = useTheme()
@@ -76,13 +75,11 @@ export function ProfileModal({ open, user, userName, onClose, onSignOut, onNameC
     setDeleting(true)
 
     try {
-      // ✅ Busca o token JWT da sessão atual
       const { data: sessionData } = await supabase.auth.getSession()
       const token = sessionData.session?.access_token
 
       if (!token) throw new Error('Sessão inválida.')
 
-      // ✅ Chama a route server-side que usa service role key
       const res = await fetch('/api/delete-account', {
         method: 'DELETE',
         headers: {
@@ -95,11 +92,14 @@ export function ProfileModal({ open, user, userName, onClose, onSignOut, onNameC
         const data = await res.json()
         throw new Error(data.error || 'Erro ao excluir conta.')
       }
-
-      onSignOut?.()
-      handleClose()
     } catch (err) {
       console.error('Erro ao deletar conta:', err)
+    } finally {
+     
+      localStorage.clear()
+      await supabase.auth.signOut().catch(() => {})
+      onSignOut?.()
+      handleClose()
       setDeleting(false)
     }
   }

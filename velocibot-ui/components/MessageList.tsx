@@ -7,7 +7,7 @@ import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import {
   Copy, Share2, CheckCircle2, Send, Sparkles, Pencil,
-  ThumbsUp, ThumbsDown, FileText, FileImage, File
+  ThumbsUp, ThumbsDown, FileText, FileImage, File, RotateCcw
 } from 'lucide-react'
 import type { Message as BaseMessage } from '@/types/chat'
 import type { Components } from 'react-markdown'
@@ -28,6 +28,7 @@ interface Props {
   onShare: (text: string) => void
   onSuggestion: (prompt: string) => void
   onEdit?: (text: string, index: number) => void
+  onRetry?: (text: string) => void
 }
 
 function getGreeting(): string {
@@ -116,12 +117,20 @@ function ThinkingIndicator() {
 
 export function MessageList({
   messages, loading, copiedId, components, bottomRef,
-  onCopy, onShare, onSuggestion, onEdit,
+  onCopy, onShare, onSuggestion, onEdit, onRetry,
 }: Props) {
   const [reactions, setReactions] = useState<Record<number, 'like' | 'dislike' | null>>({})
 
   function toggleReaction(idx: number, type: 'like' | 'dislike') {
     setReactions(prev => ({ ...prev, [idx]: prev[idx] === type ? null : type }))
+  }
+
+  // Busca a mensagem do usuário mais próxima antes do índice dado
+  function findUserMessageBefore(index: number): string | null {
+    for (let i = index - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') return messages[i].content
+    }
+    return null
   }
 
   if (messages.length === 0) {
@@ -168,7 +177,6 @@ export function MessageList({
           </p>
         </motion.div>
 
-        {/* Dino centralizado entre título e cards */}
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -266,6 +274,11 @@ export function MessageList({
                   <ActionBtn onClick={() => onShare(msg.content)}>
                     <Share2 size={11} /><span>Compartilhar</span>
                   </ActionBtn>
+                  {onRetry && !loading && (
+                    <ActionBtn onClick={() => onRetry(msg.content)}>
+                      <RotateCcw size={11} /><span>Reenviar</span>
+                    </ActionBtn>
+                  )}
                 </div>
               </div>
             )}
@@ -320,6 +333,14 @@ export function MessageList({
                       <ActionBtn onClick={() => toggleReaction(i, 'dislike')} active={reaction === 'dislike'} activeColor="#ef4444">
                         <ThumbsDown size={11} /><span>Não curti</span>
                       </ActionBtn>
+                      {onRetry && !loading && (
+                        <ActionBtn onClick={() => {
+                          const userMsg = findUserMessageBefore(i)
+                          if (userMsg) onRetry(userMsg)
+                        }}>
+                          <RotateCcw size={11} /><span>Repetir</span>
+                        </ActionBtn>
+                      )}
                     </div>
                   )}
                 </div>
@@ -339,3 +360,4 @@ export function MessageList({
     </div>
   )
 }
+

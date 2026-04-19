@@ -4,6 +4,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, AlertTriangle, Menu } from 'lucide-react'
 import dynamic from 'next/dynamic'
+import Image from 'next/image'
 
 import { useChat } from '@/hooks/useChat'
 import { useAuth } from '@/hooks/useAuth'
@@ -27,7 +28,7 @@ export default function Home() {
   const [attachedPreview, setAttachedPreview] = useState<string | null>(null)
   const [attachedFileText, setAttachedFileText] = useState<string | undefined>(undefined)
 
-  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false)
+  const mounted = useSyncExternalStore(() => () => { }, () => true, () => false)
 
   const { user, userName, loading: authLoading, signOut } = useAuth()
   const showAuthModal = mounted && !authLoading && !user
@@ -268,7 +269,14 @@ export default function Home() {
                   style={{ background: 'var(--surface-3)', border: '1px solid var(--border-muted)' }}
                 >
                   {attachedPreview ? (
-                    <img src={attachedPreview} alt="preview" className="w-10 h-10 rounded-xl object-cover" />
+                    <Image
+                      src={attachedPreview}
+                      alt="preview"
+                      width={40}
+                      height={40}
+                      className="w-10 h-10 rounded-xl object-cover"
+                      unoptimized
+                    />
                   ) : (
                     <div
                       className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black uppercase"
@@ -305,7 +313,7 @@ export default function Home() {
             onChange={setInput}
             onSend={handleSend}
             onAttach={handleAttach}
-            onScreenshot={() => {}}
+            onScreenshot={() => { }}
           />
         </div>
       </div>
