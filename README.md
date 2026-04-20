@@ -30,7 +30,7 @@ VelociBot é uma plataforma web de chat com IA pensada para devs. Ele conversa s
 
 Sem complicação. Abre o navegador, loga com e-mail, e já era.
 
-🌐 **[velocibot.vercel.app](https://velocibot.vercel.app)**
+🌐 **[velocibot](https://lohane-portfolio.netlify.app/)**
 
 ---
 
