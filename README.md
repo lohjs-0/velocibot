@@ -11,7 +11,6 @@
 
 **Seu dinossauro dev favorito — assistente de IA focado em código.**
 
-![Banner](./screenshots/banner.png)
 
 [![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
@@ -26,11 +25,21 @@
 
 ## 🦖 O que é o VelociBot?
 
-VelociBot é uma plataforma web de chat com IA pensada para devs. Ele conversa sobre qualquer assunto, mas brilha quando o papo é técnico — analisa código, aponta melhorias, explica erros e vai direto ao que importa.
+<p align="left">
+  <img src="./1776624020772-removebg-preview.png" align="right" width="220" style="margin-left: 20px; border-radius: 15px;">
+  <div>
+  <p>Dev Sênior Assistant</p>
 
-Sem complicação. Abre o navegador, loga com e-mail, e já era.
+  VelociBot é uma plataforma web de chat com IA pensada para devs. Ele conversa sobre qualquer assunto, mas brilha quando o papo é técnico — analisa código, aponta melhorias, explica erros e vai direto ao que importa.
+  <br><br>
+  Sem complicação. Abre o navegador, loga com e-mail, e já era.
+  <br><br>
+  🌐 <b><a href="https://lohane-portfolio.netlify.app/">velocibot</a></b>
+  <br><br>
+  </div>
+</p>
 
-🌐 **[velocibot](https://lohane-portfolio.netlify.app/)**
+<br clear="right">
 
 ---
 
@@ -74,95 +83,15 @@ Deploy    →  Vercel
 
 ---
 
-## 🚀 Rodando localmente
+## 🚀 Acesso
 
-### Pré-requisitos
+O VelociBot é um projeto fechado e não está disponível para execução local ou self-hosting.
 
-- Node.js 18+
-- Conta no [Supabase](https://supabase.com)
+Todo o código-fonte, infraestrutura e configurações são proprietários e não serão disponibilizados publicamente.
 
-### Instalação
+Para usar o VelociBot, acesse diretamente:
 
-```bash
-git clone https://github.com/seu-usuario/velocibot.git
-cd velocibot
-npm install
-```
-
-### Variáveis de ambiente
-
-Crie um arquivo `.env.local` na raiz:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=sua_url_aqui
-NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_anon_key_aqui
-```
-
-### Banco de dados
-
-Rode esse SQL no **Supabase SQL Editor**:
-
-```sql
-create table public.user_profiles (
-  id uuid references auth.users on delete cascade primary key,
-  name text,
-  preferences jsonb default '{}',
-  memory text default ''
-);
-
-create table public.chats (
-  id uuid primary key,
-  user_id uuid references auth.users on delete cascade,
-  title text,
-  created_at timestamptz default now()
-);
-
-create table public.messages (
-  id uuid primary key,
-  chat_id uuid references public.chats on delete cascade,
-  role text,
-  content text,
-  created_at timestamptz default now()
-);
-
--- RLS
-alter table user_profiles enable row level security;
-alter table chats enable row level security;
-alter table messages enable row level security;
-
-create policy "user_profiles_policy" on public.user_profiles
-  for all to public using (auth.uid() = id) with check (auth.uid() = id);
-
-create policy "chats_policy" on public.chats
-  for all using (auth.uid() = user_id);
-
-create policy "messages_policy" on public.messages
-  for all using (
-    auth.uid() = (select user_id from chats where id = chat_id)
-  );
-
--- Trigger: cria perfil automaticamente no cadastro
-create or replace function public.handle_new_user()
-returns trigger as $$
-begin
-  insert into public.user_profiles (id, name, preferences, memory)
-  values (new.id, split_part(new.email, '@', 1), '{}'::jsonb, '');
-  return new;
-end;
-$$ language plpgsql security definer;
-
-create or replace trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute procedure public.handle_new_user();
-```
-
-### Rodando
-
-```bash
-npm run dev
-```
-
-Acesse [http://localhost:3000](http://localhost:3000)
+🌐 **[velocibot.vercel.app](https://velocibot.vercel.app)**
 
 ---
 
@@ -240,4 +169,3 @@ Feito com ☕ e muito TypeScript — rawwr! 🦖
 **[⬆ Voltar ao topo](#)**
 
 </div>
-
