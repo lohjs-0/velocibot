@@ -140,7 +140,7 @@ velocibot/
 ## ⚖️ Licença
 
 ```
-Copyright (c) 2025 VelociBot. Todos os direitos reservados.
+Copyright (c) 2026 VelociBot. Todos os direitos reservados.
 
 Este software e todo o seu código-fonte, design, estrutura, lógica e
 documentação são propriedade exclusiva do autor.
