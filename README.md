@@ -132,7 +132,7 @@ velocibot/
 - [x] Perfil personalizável
 - [x] Reset de senha por e-mail
 - [ ] PWA — instalar como app
-- [ ] Login com Google (OAuth)
+- [x] Login com Google (OAuth)
 - [ ] Exportar conversa como PDF
 
 ---
