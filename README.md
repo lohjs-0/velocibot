@@ -128,7 +128,7 @@ velocibot/
 - [x] Múltiplas sessões de chat
 - [x] Tema claro / escuro / sistema
 - [x] Análise de imagens
-- [x] Leitura de PDFs
+- [ ] Leitura de PDFs
 - [x] Perfil personalizável
 - [x] Reset de senha por e-mail
 - [ ] PWA — instalar como app
