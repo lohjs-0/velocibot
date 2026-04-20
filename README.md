@@ -51,10 +51,10 @@
 | 🧠 **Memória de usuário** | O bot aprende suas preferências e linguagens favoritas ao longo das conversas |
 | 🧑‍💻 **Análise de Código** | Cola seu código, recebe feedback real — melhorias, bugs, otimizações |
 | 🖼️ **Análise de Imagens** | Envie imagens para o bot interpretar e comentar |
-| 📄 **Leitura de PDFs** | Upload de PDFs para análise contextual |
+| 📄 **Leitura de PDFs** | Upload de PDFs para análise contextual (em desenvolvimento)|
 | 💾 **Histórico persistente** | Conversas salvas no banco, acessíveis em qualquer dispositivo |
 | 🌗 **Tema Claro / Escuro / Sistema** | Alterne o tema conforme sua preferência |
-| 🔐 **Autenticação completa** | Login com e-mail e senha via Supabase Auth |
+| 🔐 **Autenticação completa** | Login com e-mail e senha ou pelo Google via Supabase Auth |
 | 📧 **E-mails automáticos** | Confirmação de conta e redefinição de senha |
 | 👤 **Perfil personalizável** | Edite seu nome de exibição diretamente no app |
 
