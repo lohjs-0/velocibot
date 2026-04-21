@@ -34,7 +34,7 @@
   <br><br>
   Sem complicação. Abre o navegador, loga com e-mail, e já era.
   <br><br>
-  🌐 <b><a href="https://velocibot.netlify.app//">velocibot</a></b>
+  🌐 <b><a href="https://velocibot.netlify.app/">velocibot</a></b>
   <br><br>
   </div>
 </p>
