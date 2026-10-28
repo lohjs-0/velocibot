@@ -95,7 +95,7 @@ ${sanitizedMessage}
 `;
 
     const response = await fetch(
-      "https://velocibot-production.up.railway.app/analyze",
+      "https://velocibot-zeqc.onrender.com/analyze",
       {
         method: "POST",
         headers: {
