@@ -29,11 +29,11 @@ app.use(
   })
 );
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const INTERNAL_API_TOKEN = process.env.INTERNAL_API_TOKEN;
 
-if (!GEMINI_API_KEY) {
-  console.error("❌ GEMINI_API_KEY não definida");
+if (!GROQ_API_KEY) {
+  console.error("❌ GROQ_API_KEY não definida");
   process.exit(1);
 }
 
@@ -103,99 +103,51 @@ function validateImage(image) {
   return isBase64Image || isHttpUrl;
 }
 
-async function imageUrlToPart(url) {
-  if (!url || typeof url !== "string") return null;
-
-  if (url.startsWith("data:image/")) {
-    const match = url.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
-    if (!match) return null;
-    return {
-      inlineData: {
-        mimeType: match[1],
-        data: match[2],
-      },
-    };
-  }
-
-  if (url.startsWith("http://") || url.startsWith("https://")) {
-    const response = await fetch(url);
-    if (!response.ok) return null;
-    const mimeType = response.headers.get("content-type") || "image/jpeg";
-    const buffer = Buffer.from(await response.arrayBuffer());
-    return {
-      inlineData: {
-        mimeType: mimeType.split(";")[0],
-        data: buffer.toString("base64"),
-      },
-    };
-  }
-
-  return null;
-}
-
-async function contentToParts(content) {
-  if (typeof content === "string") {
-    return [{ text: content }];
-  }
-
-  if (!Array.isArray(content)) {
-    return [{ text: String(content ?? "") }];
-  }
-
-  const parts = [];
-  for (const item of content) {
-    if (item?.type === "text") {
-      parts.push({ text: item.text || "" });
-    } else if (item?.type === "image_url") {
-      const imageUrl = typeof item.image_url === "string"
-        ? item.image_url
-        : item.image_url?.url;
-      const imagePart = await imageUrlToPart(imageUrl);
-      if (imagePart) parts.push(imagePart);
-    }
-  }
-  return parts.length ? parts : [{ text: "" }];
+function normalizeGroqMessages(messages) {
+  return messages
+    .filter((message) => message && message.content)
+    .slice(-10)
+    .map((message) => ({
+      role: message.role,
+      content: Array.isArray(message.content)
+        ? message.content
+            .map((part) => {
+              if (part?.type === "text") return part.text || "";
+              if (part?.type === "image_url") return "[imagem anexada]";
+              return "";
+            })
+            .filter(Boolean)
+            .join("\n")
+        : String(message.content),
+    }));
 }
 
 async function runAI(messages) {
   try {
-    const systemMessage = messages.find((message) => message.role === "system");
-    const contents = [];
-
-    for (const message of messages.filter((message) => message.role !== "system")) {
-      contents.push({
-        role: message.role === "assistant" ? "model" : "user",
-        parts: await contentToParts(message.content),
-      });
-    }
-
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`,
+      "https://api.groq.com/openai/v1/chat/completions",
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          Authorization: `Bearer ${GROQ_API_KEY}`,
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
-          ...(systemMessage
-            ? { systemInstruction: { parts: [{ text: systemMessage.content }] } }
-            : {}),
-          contents,
-          generationConfig: {
-            temperature: 0.9,
-            maxOutputTokens: 4096,
-          },
+          model: "openai/gpt-oss-20b",
+          messages: normalizeGroqMessages(messages),
+          max_tokens: 1024,
+          temperature: 0.7,
         }),
       }
     );
 
     const data = await response.json();
     if (!response.ok) {
-      console.error("❌ erro Gemini:", data);
+      console.error("❌ erro Groq:", data);
       return null;
     }
 
-    return data.candidates?.[0]?.content?.parts
-      ?.map((part) => part.text || "")
-      .join("") || null;
+    return data.choices?.[0]?.message?.content || null;
   } catch (error) {
     console.error("❌ erro IA:", error.message);
     return null;
