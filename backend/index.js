@@ -29,11 +29,11 @@ app.use(
   })
 );
 
-const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const INTERNAL_API_TOKEN = process.env.INTERNAL_API_TOKEN;
 
-if (!MISTRAL_API_KEY) {
-  console.error("❌ MISTRAL_API_KEY não definida");
+if (!GEMINI_API_KEY) {
+  console.error("❌ GEMINI_API_KEY não definida");
   process.exit(1);
 }
 
@@ -103,41 +103,104 @@ function validateImage(image) {
   return isBase64Image || isHttpUrl;
 }
 
-async function runAI(messages, hasImage = false) {
-  try {
-    const model = hasImage ? "pixtral-12b-2409" : "mistral-small-latest";
+async function imageUrlToPart(url) {
+  if (!url || typeof url !== "string") return null;
 
-    const res = await fetch(
-      "https://api.mistral.ai/v1/chat/completions",
+  if (url.startsWith("data:image/")) {
+    const match = url.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+    if (!match) return null;
+    return {
+      inlineData: {
+        mimeType: match[1],
+        data: match[2],
+      },
+    };
+  }
+
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const mimeType = response.headers.get("content-type") || "image/jpeg";
+    const buffer = Buffer.from(await response.arrayBuffer());
+    return {
+      inlineData: {
+        mimeType: mimeType.split(";")[0],
+        data: buffer.toString("base64"),
+      },
+    };
+  }
+
+  return null;
+}
+
+async function contentToParts(content) {
+  if (typeof content === "string") {
+    return [{ text: content }];
+  }
+
+  if (!Array.isArray(content)) {
+    return [{ text: String(content ?? "") }];
+  }
+
+  const parts = [];
+  for (const item of content) {
+    if (item?.type === "text") {
+      parts.push({ text: item.text || "" });
+    } else if (item?.type === "image_url") {
+      const imageUrl = typeof item.image_url === "string"
+        ? item.image_url
+        : item.image_url?.url;
+      const imagePart = await imageUrlToPart(imageUrl);
+      if (imagePart) parts.push(imagePart);
+    }
+  }
+  return parts.length ? parts : [{ text: "" }];
+}
+
+async function runAI(messages) {
+  try {
+    const systemMessage = messages.find((message) => message.role === "system");
+    const contents = [];
+
+    for (const message of messages.filter((message) => message.role !== "system")) {
+      contents.push({
+        role: message.role === "assistant" ? "model" : "user",
+        parts: await contentToParts(message.content),
+      });
+    }
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${MISTRAL_API_KEY}`,
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model,
-          messages: [...messages],
-          max_tokens: 4096,
-          temperature: 0.9,
+          ...(systemMessage
+            ? { systemInstruction: { parts: [{ text: systemMessage.content }] } }
+            : {}),
+          contents,
+          generationConfig: {
+            temperature: 0.9,
+            maxOutputTokens: 4096,
+          },
         }),
       }
     );
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      console.error("❌ erro Mistral:", data);
+    const data = await response.json();
+    if (!response.ok) {
+      console.error("❌ erro Gemini:", data);
       return null;
     }
 
-    return data.choices?.[0]?.message?.content || null;
-  } catch (err) {
-    console.error("❌ erro IA:", err.message);
+    return data.candidates?.[0]?.content?.parts
+      ?.map((part) => part.text || "")
+      .join("") || null;
+  } catch (error) {
+    console.error("❌ erro IA:", error.message);
     return null;
   }
 }
-
 app.get("/", (_, res) => {
   res.send("🦖 VelociBot ativo e protegido");
 });
@@ -207,7 +270,7 @@ app.post("/analyze", async (req, res) => {
       messages = buildChatMessages(systemWithMemory, formattedHistory, prompt);
     }
 
-    const aiResponse = await runAI(messages, !!image);
+    const aiResponse = await runAI(messages);
 
     return res.json({
       response: aiResponse || "não consegui analisar isso direito",
